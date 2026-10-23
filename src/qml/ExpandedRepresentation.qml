@@ -18,8 +18,14 @@ import org.kde.plasma.plasmoid
 Item {
     id: popup
 
+    // The board of tiles is only as tall as its rows; plasmoids shown in the popup keep the original size.
+    readonly property real boardHeight: trayHeading.height + plasmoidHeading.bottomPadding * 2
+        + hiddenItemsView.layout.height + hiddenItemsView.layout.margin * 2 + Kirigami.Units.largeSpacing
+
     Layout.minimumWidth: Kirigami.Units.gridUnit * 24
-    Layout.minimumHeight: Kirigami.Units.gridUnit * 24
+    Layout.minimumHeight: systemTrayState.activeApplet
+        ? Kirigami.Units.gridUnit * 24
+        : Math.min(Math.max(boardHeight, Kirigami.Units.gridUnit * 8), Kirigami.Units.gridUnit * 34)
 
     property alias hiddenLayout: hiddenItemsView.layout
     property alias plasmoidContainer: container
@@ -33,6 +39,11 @@ Item {
             right: parent.right
         }
         height: trayHeading.height + bottomPadding + container.headingHeight
+        // Only applets shown inside the popup get the usual toolbar-like heading; the tile board floats on the popup
+        opacity: systemTrayState.activeApplet ? 1 : 0
+        Behavior on opacity {
+            NumberAnimation { duration: Kirigami.Units.shortDuration }
+        }
         Behavior on height {
             NumberAnimation { duration: Kirigami.Units.shortDuration / 2; easing.type: Easing.InOutQuad }
         }
@@ -70,10 +81,11 @@ Item {
 
             Kirigami.Heading {
                 Layout.fillWidth: true
-                leftPadding: backButton.visible ? 0 : Kirigami.Units.largeSpacing
+                leftPadding: backButton.visible ? 0 : Kirigami.Units.largeSpacing + hiddenItemsView.layout.margin
 
-                level: 1
-                text: systemTrayState.activeApplet ? systemTrayState.activeApplet.plasmoid.title : i18n("Status and Notifications")
+                level: systemTrayState.activeApplet ? 1 : 2
+                font.weight: systemTrayState.activeApplet ? Font.Normal : Font.Bold
+                text: systemTrayState.activeApplet ? systemTrayState.activeApplet.plasmoid.title : i18n("Control Center")
                 maximumLineCount: 1
                 textFormat: Text.PlainText
                 elide: Text.ElideRight
@@ -247,6 +259,40 @@ Item {
                     text: parent.visible ? parent.text : ""
                 }
                 onClicked: actionsButton.applet.plasmoid.internalAction("configure").trigger();
+            }
+
+            PlasmaComponents.ToolButton {
+                id: resetLayoutButton
+                visible: root.editMode && !systemTrayState.activeApplet
+                icon.name: "edit-reset"
+                display: PlasmaComponents.AbstractButton.IconOnly
+                text: i18nc("@action:button Restore the default order and size of the tiles", "Reset Layout")
+                onClicked: {
+                    Plasmoid.configuration.tileOrder = [];
+                    Plasmoid.configuration.tileSizes = [];
+                }
+
+                PlasmaComponents.ToolTip {
+                    text: resetLayoutButton.text
+                }
+            }
+
+            PlasmaComponents.ToolButton {
+                id: editButton
+                visible: !systemTrayState.activeApplet
+                checkable: true
+                checked: root.editMode
+                onToggled: root.editMode = checked
+                icon.name: checked ? "dialog-ok-apply" : "document-edit"
+                highlighted: checked
+
+                display: checked ? PlasmaComponents.AbstractButton.TextBesideIcon : PlasmaComponents.AbstractButton.IconOnly
+                text: checked ? i18nc("@action:button Leave the mode in which tiles can be moved and resized", "Done")
+                              : i18nc("@action:button Enter the mode in which tiles can be moved and resized", "Edit Controls")
+
+                PlasmaComponents.ToolTip {
+                    text: i18nc("@info:tooltip", "Move and resize the controls")
+                }
             }
 
             PlasmaComponents.ToolButton {

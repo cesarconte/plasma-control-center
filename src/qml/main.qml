@@ -37,6 +37,46 @@ ContainmentItem {
 
     readonly property alias hiddenModel: hiddenModel
 
+    // --- Control Center tiles -------------------------------------------
+    // Whether the user is currently rearranging/resizing the tiles of the popup
+    property bool editMode: false
+
+    readonly property var tileSizeNames: ["small", "medium", "large", "wide"]
+
+    // itemId -> size name, parsed from the "itemId=size" pairs stored in the configuration
+    readonly property var tileSizeMap: {
+        const map = {};
+        for (const entry of Array.from(Plasmoid.configuration.tileSizes)) {
+            const separator = entry.lastIndexOf("=");
+            if (separator > 0) {
+                map[entry.slice(0, separator)] = entry.slice(separator + 1);
+            }
+        }
+        return map;
+    }
+
+    function tileSize(itemId: string): string {
+        const size = tileSizeMap[itemId];
+        return tileSizeNames.indexOf(size) >= 0 ? size : "medium";
+    }
+
+    function setTileSize(itemId: string, size: string): void {
+        const list = Array.from(Plasmoid.configuration.tileSizes).filter(entry => !entry.startsWith(itemId + "="));
+        if (size !== "medium") {
+            list.push(itemId + "=" + size);
+        }
+        Plasmoid.configuration.tileSizes = list;
+    }
+
+    // Columns and rows (of the 4 column board) that a tile of the given size spans
+    function tileColumns(size: string): int {
+        return size === "small" ? 1 : (size === "wide" ? 4 : 2);
+    }
+
+    function tileRows(size: string): int {
+        return size === "large" ? 2 : 1;
+    }
+
     Component.onCompleted: {
         // We need all the plasmoiditems to be there for correct working of shortcuts.
         // Instantiators create the plasmoiditems: ensure this is done after
@@ -81,6 +121,7 @@ ContainmentItem {
         target: systemTrayState
         function onExpandedChanged() {
             if (!systemTrayState.expanded) {
+                root.editMode = false;
                 activeModel.invalidateFilter();
                 hiddenModel.invalidateFilter();
             }

@@ -15,8 +15,8 @@
         "Icon": "preferences-desktop-notification",
         "Id": "org.cesar.plasmacontrolcenter",
         "License": "GPL-2.0+",
-        "Name": "Plasma Control Center",
-        "Name[es]": "Plasma Control Centre",
+        "Name": "Plasma Control Centre",
+        "Name[es]": "Centro de control de Plasma",
         "Website": "https://github.com/cesarconte/plasma-control-center"
     },
     "X-Plasma-API-Minimum-Version": "6.0",

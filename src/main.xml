@@ -45,6 +45,14 @@
       <label>Whether the popup should remain open when another window is activated</label>
       <default>false</default>
     </entry>
+    <entry name="tileSizes" type="StringList">
+      <label>Size of each popup tile, as "itemId=size" pairs where size is one of small, medium, large or wide. Entries not listed use the medium size.</label>
+      <default></default>
+    </entry>
+    <entry name="tileOrder" type="StringList">
+      <label>User-defined order of the tiles in the popup, as a list of unique item identifiers. Entries not listed are appended in their default order.</label>
+      <default></default>
+    </entry>
   </group>
 
 </kcfg>

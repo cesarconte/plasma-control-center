@@ -37,6 +37,45 @@ KCMUtils.ScrollViewKCM {
     property list<string> cfg_hiddenItems: []
     property list<string> cfg_extraItems: []
     property list<string> cfg_disabledStatusNotifiers: []
+    property list<string> cfg_tileSizes: []
+    property list<string> cfg_tileOrder: []
+
+    // Sizes the tiles of the popup can have
+    readonly property var tileSizeModel: [
+        {
+            "value": "small",
+            "text": i18nc("@item:inlistbox Tile size, one cell", "Small")
+        },
+        {
+            "value": "medium",
+            "text": i18nc("@item:inlistbox Tile size, two cells wide", "Medium")
+        },
+        {
+            "value": "large",
+            "text": i18nc("@item:inlistbox Tile size, two by two cells", "Large")
+        },
+        {
+            "value": "wide",
+            "text": i18nc("@item:inlistbox Tile size, full width", "Wide")
+        }
+    ]
+
+    function tileSizeOf(itemId: string): string {
+        for (const entry of cfg_tileSizes) {
+            if (entry.startsWith(itemId + "=")) {
+                return entry.slice(itemId.length + 1);
+            }
+        }
+        return "medium";
+    }
+
+    function setTileSizeOf(itemId: string, size: string): void {
+        const list = Array.from(cfg_tileSizes).filter(entry => !entry.startsWith(itemId + "="));
+        if (size !== "medium") {
+            list.push(itemId + "=" + size);
+        }
+        cfg_tileSizes = list;
+    }
 
     // We can share one combobox model across all delegates, they all have the same options
     readonly property var comboBoxModel: {
@@ -473,6 +512,27 @@ KCMUtils.ScrollViewKCM {
                             iconsPage.changedVisibility.delete(listItem.itemId);
                         }
                         iconsPage.changedVisibilityChanged();
+                    }
+                }
+
+                QQC2.ComboBox {
+                    id: tileSizeComboBox
+
+                    implicitContentWidthPolicy: QQC2.ComboBox.WidestText
+
+                    enabled: listItem.itemId && visibilityComboBox.currentValue !== "disabled"
+                    textRole: "text"
+                    valueRole: "value"
+                    model: iconsPage.tileSizeModel
+                    currentIndex: indexOfValue(iconsPage.tileSizeOf(listItem.itemId))
+
+                    Accessible.name: i18nc("@label:listbox Size of the entry's tile in the popup", "Tile size")
+
+                    onActivated: index => iconsPage.setTileSizeOf(listItem.itemId, currentValue)
+
+                    QQC2.ToolTip {
+                        visible: tileSizeComboBox.hovered
+                        text: i18nc("@info:tooltip", "Size of this entry's tile in the popup")
                     }
                 }
 

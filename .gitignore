@@ -1,0 +1,6 @@
+build/
+.upstream/
+*.qmlc
+*.jsc
+.kdev4/
+*.kdev4

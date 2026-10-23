@@ -1,0 +1,24 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Plasma Control Center contributors"
+            }
+        ],
+        "Category": "System Services",
+        "Description": "A macOS Control Center style system tray with fully rearrangeable and resizable tiles",
+        "Description[es]": "Una bandeja del sistema al estilo del Centro de control de macOS con mosaicos reubicables y redimensionables",
+        "EnabledByDefault": true,
+        "FormFactors": [
+            "desktop"
+        ],
+        "Icon": "preferences-desktop-notification",
+        "Id": "org.cesar.plasmacontrolcenter",
+        "License": "GPL-2.0+",
+        "Name": "Plasma Control Center",
+        "Name[es]": "Plasma Control Centre",
+        "Website": "https://github.com/cesarconte/plasma-control-center"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "X-Plasma-ContainmentType": "CustomEmbedded"
+}

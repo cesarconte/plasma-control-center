@@ -54,59 +54,6 @@ PlasmaCore.ToolTipArea {
 
     Kirigami.Icon {
         anchors.fill: parent
-
-        rotation: systemTrayState.expanded ? 180 : 0
-        Behavior on rotation {
-            RotationAnimation {
-                duration: tooltip.arrowAnimationDuration
-            }
-        }
-        opacity: systemTrayState.expanded ? 0 : 1
-        Behavior on opacity {
-            NumberAnimation {
-                duration: tooltip.arrowAnimationDuration
-            }
-        }
-
-        source: {
-            if (Plasmoid.location === PlasmaCore.Types.TopEdge) {
-                return "arrow-down-symbolic";
-            } else if (Plasmoid.location === PlasmaCore.Types.LeftEdge) {
-                return "arrow-right-symbolic";
-            } else if (Plasmoid.location === PlasmaCore.Types.RightEdge) {
-                return "arrow-left-symbolic";
-            } else {
-                return "arrow-up-symbolic";
-            }
-        }
-    }
-
-    Kirigami.Icon {
-        anchors.fill: parent
-
-        rotation: systemTrayState.expanded ? 0 : -180
-        Behavior on rotation {
-            RotationAnimation {
-                duration: tooltip.arrowAnimationDuration
-            }
-        }
-        opacity: systemTrayState.expanded ? 1 : 0
-        Behavior on opacity {
-            NumberAnimation {
-                duration: tooltip.arrowAnimationDuration
-            }
-        }
-
-        source: {
-            if (Plasmoid.location === PlasmaCore.Types.TopEdge) {
-                return "arrow-up-symbolic";
-            } else if (Plasmoid.location === PlasmaCore.Types.LeftEdge) {
-                return "arrow-left-symbolic";
-            } else if (Plasmoid.location === PlasmaCore.Types.RightEdge) {
-                return "arrow-right-symbolic";
-            } else {
-                return "arrow-down-symbolic";
-            }
-        }
+        source: "menu_new-symbolic"
     }
 }

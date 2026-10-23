@@ -18,14 +18,8 @@ import org.kde.plasma.plasmoid
 Item {
     id: popup
 
-    // The board of tiles is only as tall as its rows; plasmoids shown in the popup keep the original size.
-    readonly property real boardHeight: trayHeading.height + plasmoidHeading.bottomPadding * 2
-        + hiddenItemsView.layout.height + hiddenItemsView.layout.margin * 2 + Kirigami.Units.largeSpacing
-
     Layout.minimumWidth: Kirigami.Units.gridUnit * 24
-    Layout.minimumHeight: systemTrayState.activeApplet
-        ? Kirigami.Units.gridUnit * 24
-        : Math.min(Math.max(boardHeight, Kirigami.Units.gridUnit * 8), Kirigami.Units.gridUnit * 34)
+    Layout.minimumHeight: Kirigami.Units.gridUnit * 24
 
     property alias hiddenLayout: hiddenItemsView.layout
     property alias plasmoidContainer: container
@@ -39,11 +33,6 @@ Item {
             right: parent.right
         }
         height: trayHeading.height + bottomPadding + container.headingHeight
-        // Only applets shown inside the popup get the usual toolbar-like heading; the tile board floats on the popup
-        opacity: systemTrayState.activeApplet ? 1 : 0
-        Behavior on opacity {
-            NumberAnimation { duration: Kirigami.Units.shortDuration }
-        }
         Behavior on height {
             NumberAnimation { duration: Kirigami.Units.shortDuration / 2; easing.type: Easing.InOutQuad }
         }
@@ -81,10 +70,9 @@ Item {
 
             Kirigami.Heading {
                 Layout.fillWidth: true
-                leftPadding: backButton.visible ? 0 : Kirigami.Units.largeSpacing + hiddenItemsView.layout.margin
+                leftPadding: backButton.visible ? 0 : Kirigami.Units.largeSpacing
 
-                level: systemTrayState.activeApplet ? 1 : 2
-                font.weight: systemTrayState.activeApplet ? Font.Normal : Font.Bold
+                level: 1
                 text: systemTrayState.activeApplet ? systemTrayState.activeApplet.plasmoid.title : i18n("Control Center")
                 maximumLineCount: 1
                 textFormat: Text.PlainText

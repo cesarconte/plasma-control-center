@@ -1,7 +1,7 @@
 # Maintainer: cesarconte
 pkgname=plasma-control-center-git
 _pkgname=plasma-control-center
-pkgver=0.1.0
+pkgver=0.1.0.r0.gaa2b406
 pkgrel=1
 pkgdesc='macOS Control Center style System Tray (Plasma applet) for KDE Plasma 6'
 arch=(x86_64)

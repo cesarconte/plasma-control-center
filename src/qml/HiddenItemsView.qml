@@ -29,6 +29,7 @@ PlasmaComponents3.ScrollView {
     hoverEnabled: true
     background: null
     contentWidth: availableWidth
+    implicitHeight: visible ? (hiddenTasks.height + hiddenTasks.margin) : 0
 
     // Qt.UserRole + 2 is BaseRole::ItemId (see the configuration page)
     readonly property int itemIdRole: Qt.UserRole + 2

@@ -74,7 +74,7 @@ PlasmaCore.ToolTipArea {
     Rectangle {
         id: card
         anchors.fill: abstractItem
-        visible: abstractItem.inHiddenLayout
+        visible: abstractItem.inHiddenLayout && !systemTrayState.activeApplet
         radius: Math.min(Kirigami.Units.gridUnit * 1.1, height / 2)
         color: Qt.alpha(Kirigami.Theme.textColor, mouseArea.containsMouse || abstractItem.isCurrent ? 0.17 : 0.09)
         border.width: abstractItem.isCurrent || abstractItem.editing ? 2 : 1
@@ -90,7 +90,7 @@ PlasmaCore.ToolTipArea {
     // Round badge behind the icon
     Rectangle {
         id: badge
-        visible: abstractItem.inHiddenLayout && !abstractItem.isSmall
+        visible: abstractItem.inHiddenLayout && !abstractItem.isSmall && !systemTrayState.activeApplet
         width: abstractItem.badgeSize
         height: width
         radius: width / 2
@@ -114,6 +114,7 @@ PlasmaCore.ToolTipArea {
         anchors.fill: abstractItem
         hoverEnabled: true
         drag.filterChildren: true
+        enabled: !systemTrayState.activeApplet
         // Necessary to make the whole delegate area forward all mouse events
         acceptedButtons: Qt.AllButtons
         // Using onPositionChanged instead of onEntered because changing the
@@ -228,7 +229,7 @@ PlasmaCore.ToolTipArea {
     Column {
         id: textColumn
 
-        visible: abstractItem.inHiddenLayout && !abstractItem.isSmall
+        visible: abstractItem.inHiddenLayout && !abstractItem.isSmall && !systemTrayState.activeApplet
         spacing: 0
 
         readonly property real textX: abstractItem.tilePadding + abstractItem.badgeSize + Kirigami.Units.largeSpacing
@@ -281,7 +282,7 @@ PlasmaCore.ToolTipArea {
     // --- Edit mode: drag to rearrange, button/right click to resize --------------
     SequentialAnimation on rotation {
         id: wiggle
-        running: abstractItem.editing && root.hiddenLayout.draggedRow !== abstractItem.index && Kirigami.Units.longDuration > 0
+        running: abstractItem.editing && !systemTrayState.activeApplet && root.hiddenLayout.draggedRow !== abstractItem.index && Kirigami.Units.longDuration > 0
         loops: Animation.Infinite
         onRunningChanged: if (!running) {
             abstractItem.rotation = 0;
@@ -298,7 +299,7 @@ PlasmaCore.ToolTipArea {
 
         z: 5
         anchors.fill: abstractItem
-        visible: abstractItem.editing
+        visible: abstractItem.editing && !systemTrayState.activeApplet
         enabled: visible
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         cursorShape: pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
@@ -329,7 +330,7 @@ PlasmaCore.ToolTipArea {
         id: resizeButton
 
         z: 6
-        visible: abstractItem.editing
+        visible: abstractItem.editing && !systemTrayState.activeApplet
         anchors {
             top: abstractItem.top
             right: abstractItem.right

@@ -307,9 +307,11 @@ Item {
         HiddenItemsView {
             id: hiddenItemsView
             Layout.fillWidth: true
-            Layout.fillHeight: true
-            Layout.topMargin: Kirigami.Units.smallSpacing
+            Layout.fillHeight: !systemTrayState.activeApplet
+            Layout.preferredHeight: systemTrayState.activeApplet ? 0 : -1
+            Layout.topMargin: systemTrayState.activeApplet ? 0 : Kirigami.Units.smallSpacing
             visible: !systemTrayState.activeApplet
+            enabled: !systemTrayState.activeApplet
 
             KeyNavigation.up: pinButton
 

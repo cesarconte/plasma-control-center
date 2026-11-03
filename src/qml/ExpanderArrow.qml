@@ -22,7 +22,7 @@ PlasmaCore.ToolTipArea {
     activeFocusOnTab: true
 
     Accessible.name: subText
-    Accessible.description: i18n("Show all the items in the system tray in a popup")
+    Accessible.description: i18n("Centro de control")
     Accessible.role: Accessible.Button
     Accessible.onPressAction: systemTrayState.expanded = !systemTrayState.expanded
 
@@ -36,7 +36,7 @@ PlasmaCore.ToolTipArea {
         }
     }
 
-    subText: systemTrayState.expanded ? i18n("Close popup") : i18n("Show hidden icons")
+    subText: i18n("Centro de control")
 
     property bool wasExpanded
 
@@ -54,6 +54,7 @@ PlasmaCore.ToolTipArea {
 
     Kirigami.Icon {
         anchors.fill: parent
-        source: "menu_new-symbolic"
+        source: Plasmoid.configuration.icon || "controlcenter-symbolic"
+        fallback: Qt.resolvedUrl("controlcenter-symbolic.svg")
     }
 }

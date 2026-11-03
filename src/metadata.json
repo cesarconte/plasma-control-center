@@ -12,7 +12,7 @@
         "FormFactors": [
             "desktop"
         ],
-        "Icon": "systemsettings",
+        "Icon": "controlcenter-symbolic",
         "Id": "org.cesar.plasmacontrolcenter",
         "License": "GPL-2.0+",
         "Name": "Plasma Control Centre",

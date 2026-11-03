@@ -77,6 +77,7 @@ plasma_add_applet(org.cesar.plasmacontrolcenter
         qml/StatusNotifierItem.qml
     RESOURCES
         main.xml
+        qml/controlcenter-symbolic.svg
 )
 
 target_include_directories(org.cesar.plasmacontrolcenter PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

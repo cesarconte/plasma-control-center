@@ -53,6 +53,14 @@
       <label>User-defined order of the tiles in the popup, as a list of unique item identifiers. Entries not listed are appended in their default order.</label>
       <default></default>
     </entry>
+    <entry name="controlCenterTileSizes" type="StringList">
+      <label>Size of each Control Center tile, as "itemId=size" pairs where size is one of small, medium, large or wide.</label>
+      <default></default>
+    </entry>
+    <entry name="controlCenterTileOrder" type="StringList">
+      <label>User-defined order of the tiles in the Control Center tab, as a list of item identifiers.</label>
+      <default></default>
+    </entry>
   </group>
 
 </kcfg>

@@ -82,6 +82,12 @@ plasma_add_applet(org.cesar.plasmacontrolcenter
         qml/QuickToggleTile.qml
         qml/BrightnessSliderTile.qml
         qml/AudioSliderTile.qml
+        qml/CircleButton.qml
+        qml/ConnectivityPill.qml
+        qml/FocusPill.qml
+        qml/EnergyCard.qml
+        qml/TileEditOverlay.qml
+        qml/ControlCenterView.qml
     RESOURCES
         main.xml
         qml/controlcenter-symbolic.svg

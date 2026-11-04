@@ -29,8 +29,8 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Kirigami.Units.mediumSpacing
-        spacing: Kirigami.Units.smallSpacing
+        anchors.margins: Kirigami.Units.smallSpacing
+        spacing: 2
 
         // Cabecera del control
         RowLayout {
@@ -45,14 +45,17 @@ Item {
 
             PlasmaComponents3.Label {
                 Layout.fillWidth: true
-                text: i18n("Pantalla")
+                text: i18n("Brillo")
                 font.weight: Font.DemiBold
+                elide: Text.ElideRight
             }
 
             PlasmaComponents3.Label {
-                text: (root.backend && root.backend.nightLightActive) ? i18n("Luz nocturna activa") : i18n("Brillo")
+                text: (root.backend && root.backend.nightLightActive) ? i18n("Luz nocturna") : ""
                 font: Kirigami.Theme.smallFont
                 opacity: 0.7
+                visible: text.length > 0
+                elide: Text.ElideRight
             }
 
             PlasmaComponents3.ToolButton {

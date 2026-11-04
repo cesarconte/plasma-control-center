@@ -58,7 +58,8 @@ Item {
             return Kirigami.Units.gridUnit * 24;
         }
         if (popup.currentTab === 0) {
-            return controlCenterContent.implicitHeight + trayHeading.height + Kirigami.Units.largeSpacing * 2;
+            const h = controlCenterView.implicitHeight + trayHeading.height + Kirigami.Units.largeSpacing * 2;
+            return Math.min(Kirigami.Units.gridUnit * 30, Math.max(Kirigami.Units.gridUnit * 22, h));
         }
         return Kirigami.Units.gridUnit * 24;
     }
@@ -365,16 +366,21 @@ Item {
                 onClicked: actionsButton.applet.plasmoid.internalAction("configure").trigger()
             }
 
-            // Botones de edición de la Bandeja (solo visibles en pestaña Bandeja)
+            // Botones de edición (visibles en pestaña Centro de Control y Bandeja)
             PlasmaComponents3.ToolButton {
                 id: resetLayoutButton
-                visible: root.editMode && !systemTrayState.activeApplet && popup.currentTab === 1
+                visible: root.editMode && !systemTrayState.activeApplet
                 icon.name: "edit-reset"
                 display: PlasmaComponents3.AbstractButton.IconOnly
                 text: i18nc("@action:button Restore the default order and size of the tiles", "Reset Layout")
                 onClicked: {
-                    Plasmoid.configuration.tileOrder = [];
-                    Plasmoid.configuration.tileSizes = [];
+                    if (popup.currentTab === 0) {
+                        Plasmoid.configuration.controlCenterTileOrder = [];
+                        Plasmoid.configuration.controlCenterTileSizes = [];
+                    } else {
+                        Plasmoid.configuration.tileOrder = [];
+                        Plasmoid.configuration.tileSizes = [];
+                    }
                 }
                 PlasmaComponents3.ToolTip {
                     text: resetLayoutButton.text
@@ -383,7 +389,7 @@ Item {
 
             PlasmaComponents3.ToolButton {
                 id: editButton
-                visible: !systemTrayState.activeApplet && popup.currentTab === 1
+                visible: !systemTrayState.activeApplet
                 checkable: true
                 checked: root.editMode
                 onToggled: root.editMode = checked
@@ -426,124 +432,18 @@ Item {
         }
 
         // ====================================================================
-        // VISTA 1: macOS Golden Gate cards (Pestaña 0)
+        // VISTA 1: Centro de Control (Pestaña 0 - Tablero modular interactivo)
         // ====================================================================
-        ColumnLayout {
-            id: controlCenterContent
+        ControlCenterView {
+            id: controlCenterView
             Layout.fillWidth: true
+            Layout.fillHeight: !systemTrayState.activeApplet && popup.currentTab === 0
+            Layout.preferredHeight: (!systemTrayState.activeApplet && popup.currentTab === 0) ? -1 : 0
+            Layout.topMargin: Kirigami.Units.smallSpacing
             visible: !systemTrayState.activeApplet && popup.currentTab === 0
-            spacing: Kirigami.Units.mediumSpacing
+            enabled: !systemTrayState.activeApplet && popup.currentTab === 0
 
-            // Fila 1: Conectividad (Izquierda) + Columna de Toggles Rápidos (Derecha)
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: Kirigami.Units.mediumSpacing
-
-                // Tarjeta grande de Conectividad (Wi-Fi, Bluetooth, KDE Connect)
-                ConnectivityGroup {
-                    Layout.fillWidth: true
-                    Layout.preferredWidth: Kirigami.Units.gridUnit * 13
-                    Layout.fillHeight: true
-                }
-
-                // Columna de Toggles Rápidos (4 píldoras)
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    Layout.preferredWidth: Kirigami.Units.gridUnit * 11
-                    spacing: Kirigami.Units.smallSpacing
-
-                    // Concentración (No Molestar)
-                    QuickToggleTile {
-                        Layout.fillWidth: true
-                        iconName: popup.notificationsInhibited ? "notifications-disabled-symbolic" : "notifications-symbolic"
-                        title: i18n("Concentración")
-                        statusText: popup.notificationsInhibited ? i18n("No molestar") : i18n("Desactivado")
-                        active: popup.notificationsInhibited
-                        onToggled: popup.toggleDoNotDisturb()
-                    }
-
-                    // Luz Nocturna (Night Color)
-                    QuickToggleTile {
-                        Layout.fillWidth: true
-                        iconName: "weather-clear-night-symbolic"
-                        title: i18n("Luz nocturna")
-                        statusText: (popup.backend && popup.backend.nightLightActive) ? i18n("Activa") : i18n("Inactiva")
-                        active: popup.backend ? popup.backend.nightLightActive : false
-                        onToggled: if (popup.backend) popup.backend.toggleNightLight()
-                    }
-
-                    // Aspecto (Claro, Oscuro, Automático)
-                    QuickToggleTile {
-                        Layout.fillWidth: true
-                        iconName: {
-                            if (!popup.backend) return "weather-clear";
-                            if (popup.backend.themeMode === "auto") return "preferences-system-time";
-                            if (popup.backend.themeMode === "dark") return "weather-clear-night";
-                            return "weather-clear";
-                        }
-                        title: i18n("Aspecto")
-                        statusText: {
-                            if (!popup.backend) return i18n("Modo claro");
-                            if (popup.backend.themeMode === "auto") return i18n("Automático");
-                            if (popup.backend.themeMode === "dark") return i18n("Modo oscuro");
-                            return i18n("Modo claro");
-                        }
-                        active: popup.backend ? (popup.backend.themeMode === "dark" || popup.backend.themeMode === "auto") : false
-                        onToggled: if (popup.backend) popup.backend.cycleThemeMode()
-                    }
-
-                    // Perfil de Energía
-                    QuickToggleTile {
-                        Layout.fillWidth: true
-                        iconName: {
-                            if (!popup.backend) return "battery";
-                            if (popup.backend.powerProfile === "performance") return "speedometer";
-                            if (popup.backend.powerProfile === "power-saver") return "battery-low";
-                            return "battery";
-                        }
-                        title: i18n("Energía")
-                        statusText: {
-                            if (!popup.backend) return i18n("Equilibrado");
-                            if (popup.backend.powerProfile === "performance") return i18n("Rendimiento");
-                            if (popup.backend.powerProfile === "power-saver") return i18n("Ahorro de energía");
-                            return i18n("Equilibrado");
-                        }
-                        active: popup.backend ? (popup.backend.powerProfile === "performance") : false
-                        onToggled: if (popup.backend) popup.backend.cyclePowerProfile()
-                    }
-                }
-            }
-
-            // Fila 2: Sliders nativos (Brillo de Pantalla)
-            BrightnessSliderTile {
-                Layout.fillWidth: true
-                visible: popup.backend ? popup.backend.brightnessAvailable : true
-            }
-
-            // Fila 3: Sliders nativos (Sonido)
-            AudioSliderTile {
-                Layout.fillWidth: true
-            }
-
-            // Fila 4: Botones rápidos de bloqueo y gestión de energía
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: Kirigami.Units.smallSpacing
-
-                PlasmaComponents3.Button {
-                    Layout.fillWidth: true
-                    icon.name: "system-lock-screen"
-                    text: i18n("Bloquear pantalla")
-                    onClicked: if (popup.backend) popup.backend.lockScreen()
-                }
-
-                PlasmaComponents3.Button {
-                    Layout.fillWidth: true
-                    icon.name: "preferences-system-power-management"
-                    text: i18n("Ajustes de energía…")
-                    onClicked: if (popup.backend) popup.backend.openEnergySettings()
-                }
-            }
+            KeyNavigation.up: pinButton
         }
 
         // ====================================================================

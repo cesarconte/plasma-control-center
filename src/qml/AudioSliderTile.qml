@@ -30,8 +30,8 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Kirigami.Units.mediumSpacing
-        spacing: Kirigami.Units.smallSpacing
+        anchors.margins: Kirigami.Units.smallSpacing
+        spacing: 2
 
         // Cabecera del control
         RowLayout {
@@ -48,6 +48,7 @@ Item {
                 Layout.fillWidth: true
                 text: i18n("Sonido")
                 font.weight: Font.DemiBold
+                elide: Text.ElideRight
             }
 
             PlasmaComponents3.Label {
@@ -55,7 +56,7 @@ Item {
                 font: Kirigami.Theme.smallFont
                 opacity: 0.7
                 elide: Text.ElideRight
-                Layout.maximumWidth: root.width * 0.5
+                Layout.maximumWidth: root.width * 0.4
             }
 
             PlasmaComponents3.ToolButton {

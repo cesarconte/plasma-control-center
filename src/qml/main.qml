@@ -68,6 +68,38 @@ ContainmentItem {
         Plasmoid.configuration.tileSizes = list;
     }
 
+    // itemId -> size name for Control Center tiles
+    readonly property var ccTileSizeMap: {
+        const map = {};
+        for (const entry of Array.from(Plasmoid.configuration.controlCenterTileSizes || [])) {
+            const separator = entry.lastIndexOf("=");
+            if (separator > 0) {
+                map[entry.slice(0, separator)] = entry.slice(separator + 1);
+            }
+        }
+        return map;
+    }
+
+    function ccTileSize(itemId: string): string {
+        const size = ccTileSizeMap[itemId];
+        if (size && tileSizeNames.indexOf(size) >= 0) {
+            return size;
+        }
+        if (itemId === "brightness" || itemId === "volume") {
+            return "wide";
+        }
+        return "medium";
+    }
+
+    function setCcTileSize(itemId: string, size: string): void {
+        const list = Array.from(Plasmoid.configuration.controlCenterTileSizes || []).filter(entry => !entry.startsWith(itemId + "="));
+        const def = (itemId === "brightness" || itemId === "volume") ? "wide" : "medium";
+        if (size !== def) {
+            list.push(itemId + "=" + size);
+        }
+        Plasmoid.configuration.controlCenterTileSizes = list;
+    }
+
     // Columns and rows (of the 4 column board) that a tile of the given size spans
     function tileColumns(size: string): int {
         return size === "small" ? 1 : (size === "wide" ? 4 : 2);

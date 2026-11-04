@@ -15,7 +15,7 @@ Rectangle {
     property bool pressed: false
     property bool interactive: false
 
-    radius: Kirigami.Units.gridUnit * 0.7
+    radius: Math.min(Kirigami.Units.gridUnit * 1.1, height / 2)
     color: {
         const base = Kirigami.Theme.alternateBackgroundColor;
         if (pressed) {
@@ -31,4 +31,8 @@ Rectangle {
     border.color: (hovered && interactive)
         ? Qt.alpha(Kirigami.Theme.highlightColor, 0.4)
         : Qt.alpha(Kirigami.Theme.textColor, 0.08)
+
+    Behavior on color {
+        ColorAnimation { duration: Kirigami.Units.shortDuration }
+    }
 }

@@ -16,9 +16,6 @@ Item {
 
     readonly property var backend: Plasmoid.backend
 
-    implicitWidth: Kirigami.Units.gridUnit * 25
-    implicitHeight: Math.round(Kirigami.Units.gridUnit * 4.4)
-
     readonly property real maxB: Math.max(1, root.backend ? root.backend.brightnessMax : 100)
     readonly property real curB: root.backend ? root.backend.brightness : 100
     readonly property real brightnessRatio: curB / maxB
@@ -29,48 +26,19 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Kirigami.Units.smallSpacing
+        anchors.margins: Kirigami.Units.mediumSpacing
         spacing: 2
 
-        // Cabecera del control
-        RowLayout {
+        // Línea 1: Únicamente el título "Brillo", tal como en macOS
+        PlasmaComponents3.Label {
             Layout.fillWidth: true
-            spacing: Kirigami.Units.smallSpacing
-
-            Kirigami.Icon {
-                implicitWidth: Kirigami.Units.iconSizes.smallMedium
-                implicitHeight: implicitWidth
-                source: "video-display"
-            }
-
-            PlasmaComponents3.Label {
-                Layout.fillWidth: true
-                text: i18n("Brillo")
-                font.weight: Font.DemiBold
-                elide: Text.ElideRight
-            }
-
-            PlasmaComponents3.Label {
-                text: (root.backend && root.backend.nightLightActive) ? i18n("Luz nocturna") : ""
-                font: Kirigami.Theme.smallFont
-                opacity: 0.7
-                visible: text.length > 0
-                elide: Text.ElideRight
-            }
-
-            PlasmaComponents3.ToolButton {
-                icon.name: "preferences-desktop-display"
-                display: PlasmaComponents3.AbstractButton.IconOnly
-                implicitWidth: Kirigami.Units.iconSizes.smallMedium
-                implicitHeight: implicitWidth
-                onClicked: if (root.backend) root.backend.openDisplaySettings()
-                PlasmaComponents3.ToolTip {
-                    text: i18n("Ajustes de Pantalla")
-                }
-            }
+            text: i18n("Brillo")
+            font.weight: Font.DemiBold
+            font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
+            elide: Text.ElideRight
         }
 
-        // Fila de Slider nativo PlasmaComponents3
+        // Línea 2: Icono de brillo + Scroll (Slider) + Porcentaje
         RowLayout {
             Layout.fillWidth: true
             spacing: Kirigami.Units.smallSpacing
@@ -105,7 +73,7 @@ Item {
             }
 
             PlasmaComponents3.Label {
-                Layout.preferredWidth: Math.round(Kirigami.Units.gridUnit * 2.4)
+                Layout.preferredWidth: Math.round(Kirigami.Units.gridUnit * 2.2)
                 horizontalAlignment: Text.AlignRight
                 text: Math.round(root.brightnessRatio * 100) + "%"
                 font: Kirigami.Theme.smallFont

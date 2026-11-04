@@ -102,7 +102,10 @@ Item {
             checkable: true
             autoExclusive: true
             checked: root.ccTileSize(editOverlay.itemId) === sizeName
-            onTriggered: root.setCcTileSize(editOverlay.itemId, sizeName)
+            onTriggered: {
+                root.setCcTileSize(editOverlay.itemId, sizeName);
+                boardLayout.modelTick++;
+            }
         }
 
         SizeItem { sizeName: "small"; text: i18n("Pequeño (1 celda)") }

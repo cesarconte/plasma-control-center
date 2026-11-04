@@ -11,6 +11,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents3
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasmoid
+import org.kde.plasma.private.volume as PlasmaAudio
 
 PlasmaComponents3.ScrollView {
     id: controlCenterView
@@ -62,10 +63,10 @@ PlasmaComponents3.ScrollView {
             id: ccTasks
 
             readonly property int columns: 4
-            readonly property int margin: Kirigami.Units.smallSpacing
-            readonly property int gap: Kirigami.Units.smallSpacing * 1.5
+            readonly property int margin: Kirigami.Units.largeSpacing
+            readonly property int gap: Kirigami.Units.largeSpacing
             readonly property real cell: Math.max(1, (width - gap * (columns - 1)) / columns)
-            readonly property real rowHeight: Math.round(Kirigami.Units.gridUnit * 2.85)
+            readonly property real rowHeight: Math.round(Math.max(cell * 0.72, Kirigami.Units.gridUnit * 3.5))
 
             // Dragging state (edit mode)
             property string draggedId: ""
@@ -140,11 +141,13 @@ PlasmaComponents3.ScrollView {
                 };
                 sorted.sort((a, b) => weight(a) - weight(b));
 
-                const occupied = {};
+                const occupied = [];   // occupied[r][c] -> bool
                 const isFree = (r, c, rows, cols) => {
                     for (let rr = r; rr < r + rows; ++rr) {
                         for (let cc = c; cc < c + cols; ++cc) {
-                            if (occupied[`${rr},${cc}`]) return false;
+                            if (occupied[rr] && occupied[rr][cc]) {
+                                return false;
+                            }
                         }
                     }
                     return true;
@@ -152,8 +155,6 @@ PlasmaComponents3.ScrollView {
 
                 const slots = {};
                 let usedRows = 0;
-                let lastR = 0;
-                let lastC = 0;
 
                 for (const id of sorted) {
                     const size = root.ccTileSize(id);
@@ -161,19 +162,17 @@ PlasmaComponents3.ScrollView {
                     const rows = root.tileRows(size);
                     let placed = false;
 
-                    for (let r = lastR; !placed; ++r) {
-                        const startCol = (r === lastR) ? lastC : 0;
-                        for (let c = startCol; c + cols <= columns; ++c) {
+                    for (let r = 0; !placed; ++r) {
+                        for (let c = 0; c + cols <= columns; ++c) {
                             if (isFree(r, c, rows, cols)) {
                                 for (let rr = r; rr < r + rows; ++rr) {
+                                    occupied[rr] = occupied[rr] || [];
                                     for (let cc = c; cc < c + cols; ++cc) {
-                                        occupied[`${rr},${cc}`] = true;
+                                        occupied[rr][cc] = true;
                                     }
                                 }
                                 slots[id] = { c: c, r: r, cols: cols, rows: rows };
                                 usedRows = Math.max(usedRows, r + rows);
-                                lastR = r;
-                                lastC = c + cols;
                                 placed = true;
                                 break;
                             }
@@ -321,7 +320,7 @@ PlasmaComponents3.ScrollView {
                 width: targetRect.width
                 height: targetRect.height
                 z: 10
-                radius: Kirigami.Units.gridUnit * 1.0
+                radius: Math.min(Kirigami.Units.gridUnit * 1.1, height / 2)
                 color: Qt.alpha(Kirigami.Theme.highlightColor, 0.22)
                 border.width: 2
                 border.color: Kirigami.Theme.highlightColor
@@ -608,16 +607,74 @@ PlasmaComponents3.ScrollView {
 
             Component {
                 id: brightnessComponent
-                BrightnessSliderTile {
+                Loader {
                     anchors.fill: parent
-                    visible: popup.backend ? popup.backend.brightnessAvailable : true
+                    sourceComponent: (root.ccTileSize("brightness") === "small") ? brightSmall : brightFull
+                    Component {
+                        id: brightSmall
+                        CircleButton {
+                            anchors.fill: parent
+                            iconName: {
+                                const maxB = Math.max(1, popup.backend ? popup.backend.brightnessMax : 100);
+                                const curB = popup.backend ? popup.backend.brightness : 100;
+                                const ratio = curB / maxB;
+                                return (ratio < 0.33) ? "brightness-low-symbolic" : "brightness-high-symbolic";
+                            }
+                            active: true
+                            toolTipText: {
+                                const maxB = Math.max(1, popup.backend ? popup.backend.brightnessMax : 100);
+                                const curB = popup.backend ? popup.backend.brightness : 100;
+                                return i18n("Brillo: %1%", Math.round((curB / maxB) * 100));
+                            }
+                            onClicked: if (popup.backend) popup.backend.openDisplaySettings()
+                        }
+                    }
+                    Component {
+                        id: brightFull
+                        BrightnessSliderTile {
+                            anchors.fill: parent
+                            visible: popup.backend ? popup.backend.brightnessAvailable : true
+                        }
+                    }
                 }
             }
 
             Component {
                 id: volumeComponent
-                AudioSliderTile {
+                Loader {
                     anchors.fill: parent
+                    sourceComponent: (root.ccTileSize("volume") === "small") ? volSmall : volFull
+                    Component {
+                        id: volSmall
+                        CircleButton {
+                            anchors.fill: parent
+                            iconName: {
+                                const sink = PlasmaAudio.PreferredDevice.sink;
+                                const isMuted = sink ? sink.muted : false;
+                                const vol = sink ? (sink.volume / 65536.0) : 0.0;
+                                if (isMuted || vol === 0) return "audio-volume-muted-symbolic";
+                                if (vol < 0.33) return "audio-volume-low-symbolic";
+                                if (vol < 0.66) return "audio-volume-medium-symbolic";
+                                return "audio-volume-high-symbolic";
+                            }
+                            active: true
+                            toolTipText: {
+                                const sink = PlasmaAudio.PreferredDevice.sink;
+                                const vol = sink ? Math.round((sink.volume / 65536.0) * 100) : 0;
+                                return i18n("Sonido: %1%", vol);
+                            }
+                            onClicked: {
+                                const sink = PlasmaAudio.PreferredDevice.sink;
+                                if (sink) sink.muted = !sink.muted;
+                            }
+                        }
+                    }
+                    Component {
+                        id: volFull
+                        AudioSliderTile {
+                            anchors.fill: parent
+                        }
+                    }
                 }
             }
 

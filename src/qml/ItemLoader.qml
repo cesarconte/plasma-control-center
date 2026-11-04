@@ -16,24 +16,26 @@ Loader {
     z: x + 1 // always be above what it's on top of, even for x==0
 
     readonly property url __url: {
+        if (!model) {
+            return "";
+        }
         if (model.itemType === "Plasmoid" && model.hasApplet) {
-            return Qt.resolvedUrl("PlasmoidItem.qml")
+            return Qt.resolvedUrl("PlasmoidItem.qml");
         } else if (model.itemType === "StatusNotifier") {
-            return Qt.resolvedUrl("StatusNotifierItem.qml")
+            return Qt.resolvedUrl("StatusNotifierItem.qml");
+        } else if (model.itemType === "BackgroundApp") {
+            return Qt.resolvedUrl("BackgroundAppItem.qml");
         }
-        else if (model.itemType === "BackgroundApp") {
-            return Qt.resolvedUrl("BackgroundAppItem.qml")
-        }
-        console.warn("SystemTray ItemLoader: Invalid state, cannot determine source!")
-        return ""
+        return "";
     }
 
     // Avoid relying on context properties using initialProperties with bindings.
     // See https://bugreports.qt.io/browse/QTBUG-125070
     on__UrlChanged: {
+        if (!__url) return;
         setSource(__url, {
             index: Qt.binding(() => index),
-            status: Qt.binding(() => model.status),
+            status: Qt.binding(() => model?.status ?? 0),
             effectiveStatus: Qt.binding(() => effectiveStatus),
             model: Qt.binding(() => model),
         });

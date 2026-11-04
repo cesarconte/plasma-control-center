@@ -84,6 +84,8 @@ public Q_SLOTS:
     void openBluetoothSettings();
     void openEnergySettings();
     void lockScreen();
+    void toggleOverview();
+    void takeScreenshot();
 
     // Actualización de estado
     void refreshAll();

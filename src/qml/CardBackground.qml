@@ -14,8 +14,9 @@ Rectangle {
     property bool hovered: false
     property bool pressed: false
     property bool interactive: false
+    property real customRadius: Kirigami.Units.gridUnit * 1.0
 
-    radius: Kirigami.Units.gridUnit * 0.7
+    radius: customRadius
     color: {
         const base = Kirigami.Theme.alternateBackgroundColor;
         if (pressed) {

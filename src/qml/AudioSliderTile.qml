@@ -17,8 +17,8 @@ Item {
 
     readonly property var backend: Plasmoid.backend
 
-    implicitWidth: Kirigami.Units.gridUnit * 25
-    implicitHeight: Math.round(Kirigami.Units.gridUnit * 4.4)
+    implicitWidth: Kirigami.Units.gridUnit * 24
+    implicitHeight: Math.round(Kirigami.Units.gridUnit * 3.8)
 
     readonly property var currentSink: PlasmaAudio.PreferredDevice.sink
     readonly property real volumePercent: currentSink ? (currentSink.volume / 65536.0) : 0.0
@@ -31,46 +31,30 @@ Item {
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: Kirigami.Units.mediumSpacing
-        spacing: Kirigami.Units.smallSpacing
+        spacing: 2
 
         // Cabecera del control
         RowLayout {
             Layout.fillWidth: true
             spacing: Kirigami.Units.smallSpacing
 
-            Kirigami.Icon {
-                implicitWidth: Kirigami.Units.iconSizes.smallMedium
-                implicitHeight: implicitWidth
-                source: "audio-speakers-symbolic"
-            }
-
             PlasmaComponents3.Label {
                 Layout.fillWidth: true
                 text: i18n("Sonido")
                 font.weight: Font.DemiBold
+                font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
             }
 
             PlasmaComponents3.Label {
                 text: root.currentSink ? root.currentSink.description : i18n("Salida por defecto")
-                font: Kirigami.Theme.smallFont
+                font.pointSize: Kirigami.Theme.smallFont.pointSize * 0.9
                 opacity: 0.7
                 elide: Text.ElideRight
                 Layout.maximumWidth: root.width * 0.5
             }
-
-            PlasmaComponents3.ToolButton {
-                icon.name: "preferences-system-audio"
-                display: PlasmaComponents3.AbstractButton.IconOnly
-                implicitWidth: Kirigami.Units.iconSizes.smallMedium
-                implicitHeight: implicitWidth
-                onClicked: if (root.backend) root.backend.openAudioSettings()
-                PlasmaComponents3.ToolTip {
-                    text: i18n("Ajustes de Sonido")
-                }
-            }
         }
 
-        // Fila de Slider nativo PlasmaComponents3
+        // Fila de Slider con iconos en los extremos y selector de salida a la derecha
         RowLayout {
             Layout.fillWidth: true
             spacing: Kirigami.Units.smallSpacing
@@ -83,7 +67,7 @@ Item {
                     return "audio-volume-high-symbolic";
                 }
                 display: PlasmaComponents3.AbstractButton.IconOnly
-                implicitWidth: Kirigami.Units.iconSizes.medium
+                implicitWidth: Kirigami.Units.iconSizes.small
                 implicitHeight: implicitWidth
                 onClicked: {
                     if (root.currentSink) {
@@ -110,12 +94,15 @@ Item {
                 }
             }
 
-            PlasmaComponents3.Label {
-                Layout.preferredWidth: Math.round(Kirigami.Units.gridUnit * 2.4)
-                horizontalAlignment: Text.AlignRight
-                text: Math.round(root.volumePercent * 100) + "%"
-                font: Kirigami.Theme.smallFont
-                opacity: 0.85
+            PlasmaComponents3.ToolButton {
+                icon.name: "audio-speakers-symbolic"
+                display: PlasmaComponents3.AbstractButton.IconOnly
+                implicitWidth: Kirigami.Units.iconSizes.smallMedium
+                implicitHeight: implicitWidth
+                onClicked: if (root.backend) root.backend.openAudioSettings()
+                PlasmaComponents3.ToolTip {
+                    text: i18n("Ajustes de Sonido")
+                }
             }
         }
     }

@@ -540,3 +540,19 @@ void ControlBackend::lockScreen()
         ssIface.call(QStringLiteral("Lock"));
     }
 }
+
+void ControlBackend::toggleOverview()
+{
+    QDBusMessage msg = QDBusMessage::createMethodCall(
+        QStringLiteral("org.kde.kglobalaccel"),
+        QStringLiteral("/component/kwin"),
+        QStringLiteral("org.kde.kglobalaccel.Component"),
+        QStringLiteral("invokeShortcut"));
+    msg << QStringLiteral("Overview");
+    QDBusConnection::sessionBus().asyncCall(msg);
+}
+
+void ControlBackend::takeScreenshot()
+{
+    KProcess::startDetached(QStringLiteral("spectacle"), {});
+}

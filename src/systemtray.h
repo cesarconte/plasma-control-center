@@ -25,12 +25,14 @@ class StatusNotifierModel;
 class SystemTrayModel;
 class SortedSystemTrayModel;
 class KJob;
+class ControlBackend;
 
 class SystemTray : public Plasma::Containment
 {
     Q_OBJECT
     Q_PROPERTY(QAbstractItemModel *systemTrayModel READ sortedSystemTrayModel CONSTANT)
     Q_PROPERTY(QAbstractItemModel *configSystemTrayModel READ configSystemTrayModel CONSTANT)
+    Q_PROPERTY(ControlBackend *backend READ backend CONSTANT)
 
 public:
     SystemTray(QObject *parent, const KPluginMetaData &data, const QVariantList &args);
@@ -43,6 +45,8 @@ public:
     QAbstractItemModel *sortedSystemTrayModel();
 
     QAbstractItemModel *configSystemTrayModel();
+
+    ControlBackend *backend();
 
     // Invocable utilities
     /**
@@ -104,6 +108,7 @@ private:
     SystemTrayModel *m_systemTrayModel = nullptr;
     SortedSystemTrayModel *m_sortedSystemTrayModel = nullptr;
     SortedSystemTrayModel *m_configSystemTrayModel = nullptr;
+    ControlBackend *m_backend = nullptr;
 
     QHash<QString /*plugin id*/, int /*config group*/> m_configGroupIds;
 };

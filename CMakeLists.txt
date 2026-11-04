@@ -26,6 +26,13 @@ find_package(PlasmaQuick REQUIRED)
 
 add_subdirectory(src)
 
+# Install Control Center sub-applets (Quick Toggles & Actions)
+plasma_install_package(applets/darkmode org.cesar.plasmacontrolcenter.darkmode plasmoids applet)
+plasma_install_package(applets/donotdisturb org.cesar.plasmacontrolcenter.donotdisturb plasmoids applet)
+plasma_install_package(applets/airplanemode org.cesar.plasmacontrolcenter.airplanemode plasmoids applet)
+plasma_install_package(applets/screenshot org.cesar.plasmacontrolcenter.screenshot plasmoids applet)
+plasma_install_package(applets/systemsettings org.cesar.plasmacontrolcenter.systemsettings plasmoids applet)
+
 ki18n_install(po)
 
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)

@@ -40,7 +40,30 @@ PlasmaComponents3.ScrollView {
         contentWidth: width
         contentHeight: hiddenTasks.height + hiddenTasks.margin
         boundsBehavior: Flickable.StopAtBounds
+        interactive: hiddenTasks.draggedRow < 0
         clip: true
+
+        Timer {
+            id: autoScrollTimer
+            interval: 16
+            repeat: true
+            running: hiddenTasks.draggedRow >= 0 && hiddenTasks.autoScrollStep !== 0
+            onTriggered: {
+                const maxY = Math.max(0, flickable.contentHeight - flickable.height);
+                const oldY = flickable.contentY;
+                const newY = Math.max(0, Math.min(maxY, oldY + hiddenTasks.autoScrollStep));
+                const delta = newY - oldY;
+                if (Math.abs(delta) > 0.1) {
+                    flickable.contentY = newY;
+                    hiddenTasks.dragY += delta;
+                    hiddenTasks.dragPointerY += delta;
+                    const curSlot = hiddenTasks.slotRect(hiddenTasks.draggedRow);
+                    const centerX = hiddenTasks.dragX + curSlot.width / 2;
+                    const centerY = hiddenTasks.dragY + curSlot.height / 2;
+                    hiddenTasks.targetDropIndex = hiddenTasks.targetIndexAt(centerX, centerY);
+                }
+            }
+        }
 
         Item {
             id: hiddenTasks
@@ -60,9 +83,12 @@ PlasmaComponents3.ScrollView {
 
             // Dragging state (edit mode)
             property int draggedRow: -1
+            property int targetDropIndex: -1
             property real dragX: 0
             property real dragY: 0
-            property double lastMoveTime: 0
+            property real dragPointerX: 0
+            property real dragPointerY: 0
+            property real autoScrollStep: 0
 
             // Bumped whenever the set of rows in the model changes
             property int modelTick: 0
@@ -82,11 +108,7 @@ PlasmaComponents3.ScrollView {
                 return root.hiddenModel.data(root.hiddenModel.index(row, 0), hiddenTasksView.itemIdRole) ?? "";
             }
 
-            /*
-             * Returns { slots: [ {c, r, cols, rows} per model row ], order: [rows in display order], ids: [ids in display order], rowCount }
-             * Items are laid out first-fit, in the user's order, in a grid with `columns` columns.
-             */
-            function computeBoard(n, tick, userOrder, sizes) {
+            function sortedEntries(n, userOrder) {
                 const entries = [];
                 for (let row = 0; row < n; ++row) {
                     entries.push({row: row, id: rowId(row)});
@@ -97,7 +119,15 @@ PlasmaComponents3.ScrollView {
                     return pos >= 0 ? pos : order.length + e.row;
                 };
                 entries.sort((a, b) => weight(a) - weight(b));
+                return entries;
+            }
 
+            /*
+             * Packs `entries` in monotonic reading order (top-to-bottom, left-to-right),
+             * while still allowing tiles to fill rows alongside 2x2 ("large") tiles.
+             */
+            function layoutEntries(entries) {
+                const n = entries.length;
                 const occupied = [];   // occupied[r][c] -> bool
                 const isFree = (r, c, rows, cols) => {
                     for (let rr = r; rr < r + rows; ++rr) {
@@ -112,13 +142,16 @@ PlasmaComponents3.ScrollView {
 
                 const slots = new Array(n);
                 let usedRows = 0;
+                let lastR = 0;
+                let lastC = 0;
                 for (const e of entries) {
                     const size = root.tileSize(e.id);
                     const cols = root.tileColumns(size);
                     const rows = root.tileRows(size);
                     let placed = false;
-                    for (let r = 0; !placed; ++r) {
-                        for (let c = 0; c + cols <= columns; ++c) {
+                    for (let r = lastR; !placed; ++r) {
+                        const startCol = (r === lastR) ? lastC : 0;
+                        for (let c = startCol; c + cols <= columns; ++c) {
                             if (isFree(r, c, rows, cols)) {
                                 for (let rr = r; rr < r + rows; ++rr) {
                                     occupied[rr] = occupied[rr] || [];
@@ -128,6 +161,8 @@ PlasmaComponents3.ScrollView {
                                 }
                                 slots[e.row] = {c: c, r: r, cols: cols, rows: rows};
                                 usedRows = Math.max(usedRows, r + rows);
+                                lastR = r;
+                                lastC = c + cols;
                                 placed = true;
                                 break;
                             }
@@ -139,11 +174,19 @@ PlasmaComponents3.ScrollView {
                     order: entries.map(e => e.row),
                     ids: entries.map(e => e.id),
                     rowCount: usedRows,
+                    lastLinearPos: lastR * columns + lastC,
                 };
             }
 
-            function slotRect(row: int): rect {
-                const s = board.slots[row];
+            /*
+             * Returns { slots: [ {c, r, cols, rows} per model row ], order: [rows in display order], ids: [ids in display order], rowCount }
+             */
+            function computeBoard(n, tick, userOrder, sizes) {
+                const entries = sortedEntries(n, userOrder);
+                return layoutEntries(entries);
+            }
+
+            function slotRectFor(s): rect {
                 if (!s) {
                     return Qt.rect(0, 0, cell, rowHeight);
                 }
@@ -151,22 +194,15 @@ PlasmaComponents3.ScrollView {
                                s.cols * cell + (s.cols - 1) * gap, s.rows * rowHeight + (s.rows - 1) * gap);
             }
 
-            function rowAtPoint(px: real, py: real): int {
-                for (let row = 0; row < count; ++row) {
-                    const rc = slotRect(row);
-                    if (px >= rc.x && px < rc.x + rc.width && py >= rc.y && py < rc.y + rc.height) {
-                        return row;
-                    }
-                }
-                return -1;
+            function slotRect(row: int): rect {
+                return slotRectFor(board.slots[row]);
             }
 
-            /*! Moves the tile of row `from` to the position currently occupied by the tile of row `to` */
-            function moveTile(from: int, to: int): void {
+            /*! Moves the tile of row `from` to index `toIndex` in the display order */
+            function moveTileToIndex(from: int, toIndex: int): void {
                 const ids = Array.from(board.ids);
                 const fromIndex = board.order.indexOf(from);
-                const toIndex = board.order.indexOf(to);
-                if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) {
+                if (fromIndex < 0 || toIndex < 0 || toIndex >= ids.length || fromIndex === toIndex) {
                     return;
                 }
                 const [moved] = ids.splice(fromIndex, 1);
@@ -174,32 +210,91 @@ PlasmaComponents3.ScrollView {
                 Plasmoid.configuration.tileOrder = ids;
             }
 
+            function moveTileByOffset(row: int, delta: int): void {
+                const fromIndex = board.order.indexOf(row);
+                if (fromIndex < 0) {
+                    return;
+                }
+                const targetIndex = Math.max(0, Math.min(board.order.length - 1, fromIndex + delta));
+                moveTileToIndex(row, targetIndex);
+            }
+
+            function targetIndexAt(px: real, py: real): int {
+                const order = board.order;
+                if (order.length <= 1) {
+                    return 0;
+                }
+
+                // Direct hit test first: check which existing slot contains the point
+                for (let i = 0; i < order.length; ++i) {
+                    const rc = slotRect(order[i]);
+                    if (px >= rc.x && px <= rc.x + rc.width && py >= rc.y && py <= rc.y + rc.height) {
+                        return i;
+                    }
+                }
+
+                // Otherwise, find the slot whose center is closest to (px, py)
+                let bestIdx = 0;
+                let bestDist = Infinity;
+                for (let i = 0; i < order.length; ++i) {
+                    const rc = slotRect(order[i]);
+                    const scx = rc.x + rc.width / 2;
+                    const scy = rc.y + rc.height / 2;
+                    const d = Math.hypot(px - scx, py - scy);
+                    if (d < bestDist) {
+                        bestDist = d;
+                        bestIdx = i;
+                    }
+                }
+                return bestIdx;
+            }
+
             function beginDrag(row: int): void {
                 draggedRow = row;
+                targetDropIndex = board.order.indexOf(row);
                 const rc = slotRect(row);
                 dragX = rc.x;
                 dragY = rc.y;
+                autoScrollStep = 0;
             }
 
             function dragTo(row: int, pointerX: real, pointerY: real, grabX: real, grabY: real): void {
                 if (draggedRow !== row) {
                     return;
                 }
+                dragPointerX = pointerX;
+                dragPointerY = pointerY;
                 dragX = pointerX - grabX;
                 dragY = pointerY - grabY;
-                const now = Date.now();
-                if (now - lastMoveTime < 180) {
-                    return;
+
+                // Auto-scroll when dragging near the top or bottom edge of the visible viewport
+                const edgeZone = Kirigami.Units.gridUnit * 2;
+                const viewTop = flickable.contentY;
+                const viewBottom = flickable.contentY + flickable.height;
+                if (pointerY - viewTop < edgeZone && flickable.contentY > 0) {
+                    autoScrollStep = -Math.max(2, (edgeZone - (pointerY - viewTop)) * 0.25);
+                } else if (viewBottom - pointerY < edgeZone && flickable.contentY < flickable.contentHeight - flickable.height) {
+                    autoScrollStep = Math.max(2, (edgeZone - (viewBottom - pointerY)) * 0.25);
+                } else {
+                    autoScrollStep = 0;
                 }
-                const target = rowAtPoint(pointerX, pointerY);
-                if (target >= 0 && target !== row) {
-                    lastMoveTime = now;
-                    moveTile(row, target);
-                }
+
+                const curSlot = slotRect(row);
+                const centerX = dragX + curSlot.width / 2;
+                const centerY = dragY + curSlot.height / 2;
+                targetDropIndex = targetIndexAt(centerX, centerY);
             }
 
             function endDrag(): void {
+                if (draggedRow >= 0 && targetDropIndex >= 0) {
+                    const fromIndex = board.order.indexOf(draggedRow);
+                    if (fromIndex >= 0 && targetDropIndex !== fromIndex) {
+                        moveTileToIndex(draggedRow, targetDropIndex);
+                    }
+                }
                 draggedRow = -1;
+                targetDropIndex = -1;
+                autoScrollStep = 0;
             }
 
             // Keyboard navigation, following the visual order of the tiles
@@ -215,14 +310,23 @@ PlasmaComponents3.ScrollView {
 
             Keys.onPressed: event => {
                 const tile = repeater.itemAt(currentIndex)?.item ?? null;
+                const reorderMod = (event.modifiers & (Qt.ShiftModifier | Qt.AltModifier)) !== 0;
                 switch (event.key) {
                 case Qt.Key_Left:
                 case Qt.Key_Up:
-                    moveCurrent(-1);
+                    if (root.editMode && reorderMod && currentIndex >= 0) {
+                        moveTileByOffset(currentIndex, -1);
+                    } else {
+                        moveCurrent(-1);
+                    }
                     break;
                 case Qt.Key_Right:
                 case Qt.Key_Down:
-                    moveCurrent(1);
+                    if (root.editMode && reorderMod && currentIndex >= 0) {
+                        moveTileByOffset(currentIndex, 1);
+                    } else {
+                        moveCurrent(1);
+                    }
                     break;
                 case Qt.Key_Space:
                 case Qt.Key_Enter:
@@ -257,6 +361,48 @@ PlasmaComponents3.ScrollView {
                 function onModelReset() { hiddenTasks.modelTick++; }
                 function onLayoutChanged() { hiddenTasks.modelTick++; }
                 function onRowsMoved() { hiddenTasks.modelTick++; }
+            }
+
+            // Visual placeholder showing the target slot where the dragged tile will land
+            Rectangle {
+                id: dropPlaceholder
+                visible: hiddenTasks.draggedRow >= 0 && hiddenTasks.targetDropIndex >= 0
+                readonly property rect targetRect: {
+                    if (hiddenTasks.draggedRow < 0 || hiddenTasks.targetDropIndex < 0) {
+                        return Qt.rect(0, 0, 0, 0);
+                    }
+                    const order = hiddenTasks.board.order;
+                    if (order.length === 0) {
+                        return Qt.rect(0, 0, 0, 0);
+                    }
+                    const idx = Math.max(0, Math.min(order.length - 1, hiddenTasks.targetDropIndex));
+                    const targetRow = order[idx];
+                    const targetRc = hiddenTasks.slotRect(targetRow);
+                    const draggedRc = hiddenTasks.slotRect(hiddenTasks.draggedRow);
+                    return Qt.rect(targetRc.x, targetRc.y, draggedRc.width, draggedRc.height);
+                }
+                x: targetRect.x
+                y: targetRect.y
+                width: targetRect.width
+                height: targetRect.height
+                z: 10
+                radius: Math.min(Kirigami.Units.gridUnit * 1.1, height / 2)
+                color: Qt.alpha(Kirigami.Theme.highlightColor, 0.22)
+                border.width: 2
+                border.color: Kirigami.Theme.highlightColor
+
+                Behavior on x {
+                    NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic }
+                }
+                Behavior on y {
+                    NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic }
+                }
+                Behavior on width {
+                    NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic }
+                }
+                Behavior on height {
+                    NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic }
+                }
             }
 
             Repeater {

@@ -16,6 +16,146 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 "X-Generator: Lokalize 26.04.0\n"
 
+#: applets/airplanemode/contents/ui/main.qml
+msgid "Airplane Mode"
+msgstr "Modo avión"
+
+#: applets/airplanemode/contents/ui/main.qml
+msgctxt "@info:status Airplane mode status"
+msgid "On"
+msgstr "Activado"
+
+#: applets/airplanemode/contents/ui/main.qml
+msgctxt "@info:status Airplane mode status"
+msgid "Off"
+msgstr "Desactivado"
+
+#: applets/airplanemode/contents/ui/main.qml
+msgctxt "@action:inmenu"
+msgid "Configure Network Connections…"
+msgstr "Configurar las conexiones de red…"
+
+#: applets/darkmode/contents/ui/main.qml
+msgid "Dark Mode"
+msgstr "Modo oscuro"
+
+#: applets/darkmode/contents/ui/main.qml
+msgctxt "@info:status Dark mode status"
+msgid "Automatic (Dark)"
+msgstr "Automático (oscuro)"
+
+#: applets/darkmode/contents/ui/main.qml
+msgctxt "@info:status Dark mode status"
+msgid "Automatic (Light)"
+msgstr "Automático (claro)"
+
+#: applets/darkmode/contents/ui/main.qml
+msgctxt "@info:status Dark mode status"
+msgid "On"
+msgstr "Activado"
+
+#: applets/darkmode/contents/ui/main.qml
+msgctxt "@info:status Dark mode status"
+msgid "Off"
+msgstr "Desactivado"
+
+#: applets/darkmode/contents/ui/main.qml
+msgctxt "@action:inmenu"
+msgid "Light"
+msgstr "Claro"
+
+#: applets/darkmode/contents/ui/main.qml
+msgctxt "@action:inmenu"
+msgid "Dark"
+msgstr "Oscuro"
+
+#: applets/darkmode/contents/ui/main.qml
+msgctxt "@action:inmenu"
+msgid "Automatic (Time of Day)"
+msgstr "Automático (según la hora del día)"
+
+#: applets/darkmode/contents/ui/main.qml
+msgctxt "@action:inmenu"
+msgid "Configure Global Theme…"
+msgstr "Configurar el tema global…"
+
+#: applets/donotdisturb/contents/ui/main.qml
+msgid "Do Not Disturb"
+msgstr "No molestar"
+
+#: applets/donotdisturb/contents/ui/main.qml
+msgctxt "@info:status Do Not Disturb status"
+msgid "On"
+msgstr "Activado"
+
+#: applets/donotdisturb/contents/ui/main.qml
+msgctxt "@info:status Do Not Disturb status"
+msgid "Off"
+msgstr "Desactivado"
+
+#: applets/donotdisturb/contents/ui/main.qml
+msgctxt "@action:inmenu"
+msgid "For 1 hour"
+msgstr "Durante 1 hora"
+
+#: applets/donotdisturb/contents/ui/main.qml
+msgctxt "@action:inmenu"
+msgid "For 4 hours"
+msgstr "Durante 4 horas"
+
+#: applets/donotdisturb/contents/ui/main.qml
+msgctxt "@action:inmenu"
+msgid "Until manually disabled"
+msgstr "Hasta que se desactive manualmente"
+
+#: applets/donotdisturb/contents/ui/main.qml
+msgctxt "@action:inmenu"
+msgid "Configure Notifications…"
+msgstr "Configurar las notificaciones…"
+
+#: applets/screenshot/contents/ui/main.qml
+msgid "Screenshot"
+msgstr "Captura de pantalla"
+
+#: applets/screenshot/contents/ui/main.qml
+msgctxt "@info:status Screenshot tile subtitle"
+msgid "Capture screen"
+msgstr "Capturar pantalla"
+
+#: applets/screenshot/contents/ui/main.qml
+msgctxt "@action:inmenu"
+msgid "Capture Rectangular Region"
+msgstr "Capturar una región rectangular"
+
+#: applets/screenshot/contents/ui/main.qml
+msgctxt "@action:inmenu"
+msgid "Capture Entire Desktop"
+msgstr "Capturar todo el escritorio"
+
+#: applets/screenshot/contents/ui/main.qml
+msgctxt "@action:inmenu"
+msgid "Capture Active Window"
+msgstr "Capturar la ventana activa"
+
+#: applets/screenshot/contents/ui/main.qml
+msgctxt "@action:inmenu"
+msgid "Record Screen"
+msgstr "Grabar la pantalla"
+
+#: applets/screenshot/contents/ui/main.qml
+msgctxt "@action:inmenu"
+msgid "Open Spectacle"
+msgstr "Abrir Spectacle"
+
+#: applets/systemsettings/contents/ui/main.qml
+msgid "System Settings"
+msgstr "Preferencias del sistema"
+
+#: applets/systemsettings/contents/ui/main.qml
+msgctxt "@info:status System Settings tile subtitle"
+msgid "Configure system"
+msgstr "Configurar el sistema"
+
 #: src/qml/AbstractItem.qml
 msgctxt "@action:button Change the size of this tile"
 msgid "Resize"
@@ -40,6 +180,26 @@ msgstr "Grande"
 msgctxt "@item:inmenu Tile size, full width"
 msgid "Wide"
 msgstr "Ancho"
+
+#: src/qml/AbstractItem.qml
+msgctxt "@item:inmenu Move tile one position earlier"
+msgid "Move Earlier"
+msgstr "Mover antes"
+
+#: src/qml/AbstractItem.qml
+msgctxt "@item:inmenu Move tile one position later"
+msgid "Move Later"
+msgstr "Mover después"
+
+#: src/qml/AbstractItem.qml
+msgctxt "@item:inmenu Move tile to the first position"
+msgid "Move to Start"
+msgstr "Mover al principio"
+
+#: src/qml/AbstractItem.qml
+msgctxt "@item:inmenu Move tile to the last position"
+msgid "Move to End"
+msgstr "Mover al final"
 
 #: src/qml/BackgroundAppItem.qml
 msgctxt "@action:inmenu"

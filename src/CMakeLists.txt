@@ -26,6 +26,7 @@ set_property(TARGET pcc_dbusmenuqt PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_include_directories(pcc_dbusmenuqt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/dbusmenuqt)
 
 set(systemtray_SRCS
+    controlbackend.cpp
     dbusserviceobserver.cpp
     plasmoidregistry.cpp
     statusnotifieritemhost.cpp
@@ -75,6 +76,12 @@ plasma_add_applet(org.cesar.plasmacontrolcenter
         qml/main.qml
         qml/PlasmoidPopupsContainer.qml
         qml/StatusNotifierItem.qml
+        qml/CardBackground.qml
+        qml/ConnectivityRow.qml
+        qml/ConnectivityGroup.qml
+        qml/QuickToggleTile.qml
+        qml/BrightnessSliderTile.qml
+        qml/AudioSliderTile.qml
     RESOURCES
         main.xml
         qml/controlcenter-symbolic.svg

@@ -120,6 +120,7 @@ ContainmentItem {
     Connections {
         target: systemTrayState
         function onExpandedChanged() {
+            dialog.visible = systemTrayState.expanded;
             if (!systemTrayState.expanded) {
                 root.editMode = false;
                 activeModel.invalidateFilter();
@@ -319,7 +320,7 @@ ContainmentItem {
                 Layout.fillHeight: !vertical
                 Layout.alignment: vertical ? Qt.AlignVCenter : Qt.AlignHCenter
                 iconSize: tasksGrid.itemSize
-                visible: root.hiddenLayout.itemCount > 0
+                visible: true
             }
         }
 

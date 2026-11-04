@@ -301,6 +301,7 @@ PlasmaCore.ToolTipArea {
         anchors.fill: abstractItem
         visible: abstractItem.editing && !systemTrayState.activeApplet
         enabled: visible
+        preventStealing: true
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         cursorShape: pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
 
@@ -309,11 +310,11 @@ PlasmaCore.ToolTipArea {
                 sizeMenu.popup();
                 return;
             }
-            grabX = mouse.x;
-            grabY = mouse.y;
-            root.hiddenLayout.beginDrag(abstractItem.index);
-            // beginDrag() places the tile in its slot; keep it under the pointer
             const p = editOverlay.mapToItem(root.hiddenLayout, mouse.x, mouse.y);
+            const rc = root.hiddenLayout.slotRect(abstractItem.index);
+            grabX = p.x - rc.x;
+            grabY = p.y - rc.y;
+            root.hiddenLayout.beginDrag(abstractItem.index);
             root.hiddenLayout.dragTo(abstractItem.index, p.x, p.y, grabX, grabY);
         }
         onPositionChanged: mouse => {
@@ -363,5 +364,42 @@ PlasmaCore.ToolTipArea {
         SizeItem { sizeName: "medium"; text: i18nc("@item:inmenu Tile size, two cells wide", "Medium") }
         SizeItem { sizeName: "large"; text: i18nc("@item:inmenu Tile size, two by two cells", "Large") }
         SizeItem { sizeName: "wide"; text: i18nc("@item:inmenu Tile size, full width", "Wide") }
+
+        QQC2.MenuSeparator {}
+
+        QQC2.MenuItem {
+            icon.name: "go-previous"
+            text: i18nc("@item:inmenu Move tile one position earlier", "Move Earlier")
+            enabled: (root.hiddenLayout?.board?.order?.indexOf(abstractItem.index) ?? -1) > 0
+            onTriggered: root.hiddenLayout?.moveTileByOffset(abstractItem.index, -1)
+        }
+        QQC2.MenuItem {
+            icon.name: "go-next"
+            text: i18nc("@item:inmenu Move tile one position later", "Move Later")
+            enabled: {
+                const order = root.hiddenLayout?.board?.order;
+                if (!order) return false;
+                const pos = order.indexOf(abstractItem.index);
+                return pos >= 0 && pos < order.length - 1;
+            }
+            onTriggered: root.hiddenLayout?.moveTileByOffset(abstractItem.index, 1)
+        }
+        QQC2.MenuItem {
+            icon.name: "go-top"
+            text: i18nc("@item:inmenu Move tile to the first position", "Move to Start")
+            enabled: (root.hiddenLayout?.board?.order?.indexOf(abstractItem.index) ?? -1) > 0
+            onTriggered: root.hiddenLayout?.moveTileToIndex(abstractItem.index, 0)
+        }
+        QQC2.MenuItem {
+            icon.name: "go-bottom"
+            text: i18nc("@item:inmenu Move tile to the last position", "Move to End")
+            enabled: {
+                const order = root.hiddenLayout?.board?.order;
+                if (!order) return false;
+                const pos = order.indexOf(abstractItem.index);
+                return pos >= 0 && pos < order.length - 1;
+            }
+            onTriggered: root.hiddenLayout?.moveTileToIndex(abstractItem.index, (root.hiddenLayout?.board?.order?.length ?? 1) - 1)
+        }
     }
 }

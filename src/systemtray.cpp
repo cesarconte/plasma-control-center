@@ -8,6 +8,8 @@
 
 #include "debug.h"
 #include "systemtray.h"
+#include "controlbackend.h"
+#include <QQmlEngine>
 
 #include "plasmoidregistry.h"
 #include "sortedsystemtraymodel.h"
@@ -111,6 +113,12 @@ SystemTray::SystemTray(QObject *parent, const KPluginMetaData &data, const QVari
 {
     setHasConfigurationInterface(true);
     setContainmentDisplayHints(Plasma::Types::ContainmentDrawsPlasmoidHeading | Plasma::Types::ContainmentForcesSquarePlasmoids);
+
+    static bool backendRegistered = false;
+    if (!backendRegistered) {
+        qmlRegisterType<ControlBackend>("org.cesar.plasmacontrolcenter", 1, 0, "ControlBackend");
+        backendRegistered = true;
+    }
 }
 
 SystemTray::~SystemTray()
@@ -409,6 +417,14 @@ QAbstractItemModel *SystemTray::configSystemTrayModel()
         m_configSystemTrayModel->setSourceModel(systemTrayModel());
     }
     return m_configSystemTrayModel;
+}
+
+ControlBackend *SystemTray::backend()
+{
+    if (!m_backend) {
+        m_backend = new ControlBackend(this);
+    }
+    return m_backend;
 }
 
 void SystemTray::onEnabledAppletsChanged()

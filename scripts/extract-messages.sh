@@ -10,12 +10,13 @@ POT=po/$DOMAIN.pot
 
 xgettext --from-code=UTF-8 -C -kde -ci18n \
     -ki18n:1 -ki18nc:1c,2 -ki18np:1,2 -ki18ncp:1c,2,3 \
+    -ki18nd:2 -ki18ndc:2c,3 -ki18ndp:2,3 -ki18ndcp:2c,3,4 \
     -kki18n:1 -kki18nc:1c,2 -kki18np:1,2 -kki18ncp:1c,2,3 \
     -kxi18n:1 -kxi18nc:1c,2 -kxi18np:1,2 -kxi18ncp:1c,2,3 \
     -kI18N_NOOP:1 -kI18NC_NOOP:1c,2 \
     --package-name="plasma-control-center" --msgid-bugs-address="https://github.com/cesarconte/plasma-control-center/issues" \
     --add-location=file \
-    $(find src -name '*.qml' -o -name '*.cpp' | sort) -o "$POT"
+    $(find src applets -name '*.qml' -o -name '*.cpp' | sort) -o "$POT"
 
 for po in po/*/$DOMAIN.po; do
     [ -f "$po" ] && msgmerge --update --backup=none --quiet "$po" "$POT"

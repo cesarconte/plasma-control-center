@@ -73,9 +73,12 @@ PlasmaCore.ToolTipArea {
     // Card
     Rectangle {
         id: card
-        anchors.fill: abstractItem
         visible: abstractItem.inHiddenLayout && !systemTrayState.activeApplet
-        radius: Math.min(Kirigami.Units.gridUnit * 1.1, height / 2)
+        anchors.centerIn: abstractItem.isSmall ? abstractItem : undefined
+        anchors.fill: abstractItem.isSmall ? undefined : abstractItem
+        width: abstractItem.isSmall ? Math.min(abstractItem.width, abstractItem.height) : abstractItem.width
+        height: abstractItem.isSmall ? width : abstractItem.height
+        radius: abstractItem.isSmall ? width / 2 : Math.min(Kirigami.Units.gridUnit * 1.1, height / 2)
         color: Qt.alpha(Kirigami.Theme.textColor, mouseArea.containsMouse || abstractItem.isCurrent ? 0.17 : 0.09)
         border.width: abstractItem.isCurrent || abstractItem.editing ? 2 : 1
         border.color: abstractItem.isCurrent || abstractItem.editing

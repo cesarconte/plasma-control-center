@@ -83,6 +83,7 @@ plasma_add_applet(org.cesar.plasmacontrolcenter
         qml/EnergyCard.qml
         qml/CircleButton.qml
         qml/FocusPill.qml
+        qml/TileEditOverlay.qml
         qml/QuickToggleTile.qml
         qml/BrightnessSliderTile.qml
         qml/AudioSliderTile.qml

@@ -2,25 +2,20 @@
     SPDX-FileCopyrightText: 2016 Marco Martin <mart@kde.org>
     SPDX-FileCopyrightText: 2020 Konrad Materka <materka@gmail.com>
     SPDX-FileCopyrightText: 2020 Nate Graham <nate@kde.org>
+    SPDX-FileCopyrightText: 2026 Cesar <yugurta@gmail.com>
 
     SPDX-License-Identifier: LGPL-2.0-or-later
 */
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Layouts
 
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents3
+import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasmoid
 
-/*
- * The board of tiles shown in the popup.
- *
- * The model is the (unsorted) list of passive items; the visual order and the
- * span of every tile is computed here from the "tileOrder" and "tileSizes"
- * settings, so the underlying models and the applets they host are never
- * reordered or recreated when the user rearranges the tiles.
- */
 PlasmaComponents3.ScrollView {
     id: hiddenTasksView
 
@@ -29,25 +24,25 @@ PlasmaComponents3.ScrollView {
     hoverEnabled: true
     background: null
     contentWidth: availableWidth
-    implicitHeight: visible ? (hiddenTasks.height + hiddenTasks.margin) : 0
+    implicitHeight: visible ? (hiddenTasks.height + hiddenTasks.margin * 2) : 0
 
-    // Qt.UserRole + 2 is BaseRole::ItemId (see the configuration page)
+    // Qt.UserRole + 2 is BaseRole::ItemId
     readonly property int itemIdRole: Qt.UserRole + 2
 
     Flickable {
         id: flickable
 
         contentWidth: width
-        contentHeight: hiddenTasks.height + hiddenTasks.margin
+        contentHeight: hiddenTasks.height + hiddenTasks.margin * 2
         boundsBehavior: Flickable.StopAtBounds
-        interactive: hiddenTasks.draggedRow < 0
+        interactive: hiddenTasks.draggedId === ""
         clip: true
 
         Timer {
             id: autoScrollTimer
             interval: 16
             repeat: true
-            running: hiddenTasks.draggedRow >= 0 && hiddenTasks.autoScrollStep !== 0
+            running: hiddenTasks.draggedId !== "" && hiddenTasks.autoScrollStep !== 0
             onTriggered: {
                 const maxY = Math.max(0, flickable.contentHeight - flickable.height);
                 const oldY = flickable.contentY;
@@ -56,8 +51,7 @@ PlasmaComponents3.ScrollView {
                 if (Math.abs(delta) > 0.1) {
                     flickable.contentY = newY;
                     hiddenTasks.dragY += delta;
-                    hiddenTasks.dragPointerY += delta;
-                    const curSlot = hiddenTasks.slotRect(hiddenTasks.draggedRow);
+                    const curSlot = hiddenTasks.slotRect(hiddenTasks.draggedId);
                     const centerX = hiddenTasks.dragX + curSlot.width / 2;
                     const centerY = hiddenTasks.dragY + curSlot.height / 2;
                     hiddenTasks.targetDropIndex = hiddenTasks.targetIndexAt(centerX, centerY);
@@ -68,32 +62,22 @@ PlasmaComponents3.ScrollView {
         Item {
             id: hiddenTasks
 
-            // Number of grid columns of the board. Tile spans are expressed in these.
             readonly property int columns: 4
-            readonly property int margin: Kirigami.Units.largeSpacing
-            readonly property int gap: Kirigami.Units.largeSpacing
+            readonly property int margin: Kirigami.Units.smallSpacing
+            readonly property int gap: Kirigami.Units.smallSpacing * 1.5
             readonly property real cell: Math.max(1, (width - gap * (columns - 1)) / columns)
-            // Tiles are wider than tall, like in macOS: a row is a bit lower than a column is wide
-            readonly property real rowHeight: Math.round(Math.max(cell * 0.72, Kirigami.Units.gridUnit * 3.5))
-
-            // Compatibility with the rest of the applet (it was a GridView before)
-            readonly property int count: repeater.count
-            readonly property int itemCount: count
-            property int currentIndex: -1
+            readonly property real rowHeight: Math.round(Kirigami.Units.gridUnit * 2.85)
 
             // Dragging state (edit mode)
-            property int draggedRow: -1
+            property string draggedId: ""
             property int targetDropIndex: -1
             property real dragX: 0
             property real dragY: 0
-            property real dragPointerX: 0
-            property real dragPointerY: 0
+            property real dragGrabX: 0
+            property real dragGrabY: 0
             property real autoScrollStep: 0
 
-            // Bumped whenever the set of rows in the model changes
             property int modelTick: 0
-
-            // Space always reserved for the scroll bar, so showing it never changes the layout (binding loop)
             readonly property real scrollBarReserve: Kirigami.Units.smallSpacing * 2
 
             x: margin
@@ -102,67 +86,67 @@ PlasmaComponents3.ScrollView {
 
             activeFocusOnTab: true
 
-            readonly property var board: computeBoard(count, modelTick, Plasmoid.configuration.tileOrder, root.tileSizeMap)
+            readonly property var builtinItems: [
+                "wifi", "energy", "bluetooth", "airdrop",
+                "stagemanager", "screenmirroring", "darkmode", "nightlight", "focus",
+                "brightness", "volume",
+                "lockscreen", "systemsettings", "screenshot", "energysettings"
+            ]
 
-            function rowId(row: int): string {
-                return root.hiddenModel.data(root.hiddenModel.index(row, 0), hiddenTasksView.itemIdRole) ?? "";
-            }
-
-            function sortedEntries(n, userOrder) {
-                const entries = [];
-                for (let row = 0; row < n; ++row) {
-                    entries.push({row: row, id: rowId(row)});
+            readonly property var allItems: {
+                modelTick;
+                const list = Array.from(builtinItems);
+                if (popup.filteredTrayModel) {
+                    const cnt = popup.filteredTrayModel.count;
+                    for (let i = 0; i < cnt; ++i) {
+                        const idx = popup.filteredTrayModel.index(i, 0);
+                        const id = popup.filteredTrayModel.data(idx, hiddenTasksView.itemIdRole) || "";
+                        if (id && !list.includes(id)) {
+                            list.push(id);
+                        }
+                    }
                 }
-                const order = Array.from(userOrder);
-                const weight = e => {
-                    const pos = order.indexOf(e.id);
-                    return pos >= 0 ? pos : order.length + e.row;
-                };
-                entries.sort((a, b) => weight(a) - weight(b));
-                return entries;
+                return list;
             }
 
-            /*
-             * Packs `entries` in monotonic reading order (top-to-bottom, left-to-right),
-             * while still allowing tiles to fill rows alongside 2x2 ("large") tiles.
-             */
-            function layoutEntries(entries) {
-                const n = entries.length;
-                const occupied = [];   // occupied[r][c] -> bool
+            readonly property var board: computeBoard(allItems, modelTick, Plasmoid.configuration.tileOrder, root.tileSizeMap)
+
+            function computeBoard(items, tick, userOrder, sizes) {
+                const order = Array.from(userOrder);
+                const sorted = Array.from(items);
+                const weight = id => {
+                    const pos = order.indexOf(id);
+                    return pos >= 0 ? pos : order.length + items.indexOf(id);
+                };
+                sorted.sort((a, b) => weight(a) - weight(b));
+
+                const occupied = {};
                 const isFree = (r, c, rows, cols) => {
                     for (let rr = r; rr < r + rows; ++rr) {
                         for (let cc = c; cc < c + cols; ++cc) {
-                            if (occupied[rr] && occupied[rr][cc]) {
-                                return false;
-                            }
+                            if (occupied[`${rr},${cc}`]) return false;
                         }
                     }
                     return true;
                 };
 
-                const slots = new Array(n);
+                const slots = {};
                 let usedRows = 0;
-                let lastR = 0;
-                let lastC = 0;
-                for (const e of entries) {
-                    const size = root.tileSize(e.id);
+                for (const id of sorted) {
+                    const size = root.tileSize(id);
                     const cols = root.tileColumns(size);
                     const rows = root.tileRows(size);
                     let placed = false;
-                    for (let r = lastR; !placed; ++r) {
-                        const startCol = (r === lastR) ? lastC : 0;
-                        for (let c = startCol; c + cols <= columns; ++c) {
+                    for (let r = 0; !placed; ++r) {
+                        for (let c = 0; c + cols <= columns; ++c) {
                             if (isFree(r, c, rows, cols)) {
                                 for (let rr = r; rr < r + rows; ++rr) {
-                                    occupied[rr] = occupied[rr] || [];
                                     for (let cc = c; cc < c + cols; ++cc) {
-                                        occupied[rr][cc] = true;
+                                        occupied[`${rr},${cc}`] = true;
                                     }
                                 }
-                                slots[e.row] = {c: c, r: r, cols: cols, rows: rows};
+                                slots[id] = { c: c, r: r, cols: cols, rows: rows };
                                 usedRows = Math.max(usedRows, r + rows);
-                                lastR = r;
-                                lastC = c + cols;
                                 placed = true;
                                 break;
                             }
@@ -171,76 +155,51 @@ PlasmaComponents3.ScrollView {
                 }
                 return {
                     slots: slots,
-                    order: entries.map(e => e.row),
-                    ids: entries.map(e => e.id),
-                    rowCount: usedRows,
-                    lastLinearPos: lastR * columns + lastC,
+                    order: sorted,
+                    rowCount: usedRows
                 };
             }
 
-            /*
-             * Returns { slots: [ {c, r, cols, rows} per model row ], order: [rows in display order], ids: [ids in display order], rowCount }
-             */
-            function computeBoard(n, tick, userOrder, sizes) {
-                const entries = sortedEntries(n, userOrder);
-                return layoutEntries(entries);
-            }
-
             function slotRectFor(s): rect {
-                if (!s) {
-                    return Qt.rect(0, 0, cell, rowHeight);
-                }
+                if (!s) return Qt.rect(0, 0, cell, rowHeight);
                 return Qt.rect(s.c * (cell + gap), s.r * (rowHeight + gap),
                                s.cols * cell + (s.cols - 1) * gap, s.rows * rowHeight + (s.rows - 1) * gap);
             }
 
-            function slotRect(row: int): rect {
-                return slotRectFor(board.slots[row]);
+            function slotRect(id: string): rect {
+                return slotRectFor(board.slots[id]);
             }
 
-            /*! Moves the tile of row `from` to index `toIndex` in the display order */
-            function moveTileToIndex(from: int, toIndex: int): void {
-                const ids = Array.from(board.ids);
-                const fromIndex = board.order.indexOf(from);
-                if (fromIndex < 0 || toIndex < 0 || toIndex >= ids.length || fromIndex === toIndex) {
-                    return;
-                }
+            function moveTileToIndex(fromId: string, toIndex: int): void {
+                const ids = Array.from(board.order);
+                const fromIndex = ids.indexOf(fromId);
+                if (fromIndex < 0 || toIndex < 0 || toIndex >= ids.length || fromIndex === toIndex) return;
                 const [moved] = ids.splice(fromIndex, 1);
                 ids.splice(toIndex, 0, moved);
                 Plasmoid.configuration.tileOrder = ids;
             }
 
-            function moveTileByOffset(row: int, delta: int): void {
-                const fromIndex = board.order.indexOf(row);
-                if (fromIndex < 0) {
-                    return;
-                }
+            function moveTileByOffset(id: string, delta: int): void {
+                const fromIndex = board.order.indexOf(id);
+                if (fromIndex < 0) return;
                 const targetIndex = Math.max(0, Math.min(board.order.length - 1, fromIndex + delta));
-                moveTileToIndex(row, targetIndex);
+                moveTileToIndex(id, targetIndex);
             }
 
             function targetIndexAt(px: real, py: real): int {
                 const order = board.order;
-                if (order.length <= 1) {
-                    return 0;
-                }
-
-                // Direct hit test first: check which existing slot contains the point
+                if (order.length <= 1) return 0;
                 for (let i = 0; i < order.length; ++i) {
                     const rc = slotRect(order[i]);
                     if (px >= rc.x && px <= rc.x + rc.width && py >= rc.y && py <= rc.y + rc.height) {
                         return i;
                     }
                 }
-
-                // Otherwise, find the slot whose center is closest to (px, py)
                 let bestIdx = 0;
                 let bestDist = Infinity;
                 for (let i = 0; i < order.length; ++i) {
                     const rc = slotRect(order[i]);
-                    const scx = rc.x + rc.width / 2;
-                    const scy = rc.y + rc.height / 2;
-                    const d = Math.hypot(px - scx, py - scy);
+                    const d = Math.hypot(px - (rc.x + rc.width / 2), py - (rc.y + rc.height / 2));
                     if (d < bestDist) {
                         bestDist = d;
                         bestIdx = i;
@@ -249,25 +208,22 @@ PlasmaComponents3.ScrollView {
                 return bestIdx;
             }
 
-            function beginDrag(row: int): void {
-                draggedRow = row;
-                targetDropIndex = board.order.indexOf(row);
-                const rc = slotRect(row);
+            function beginDrag(id: string, grabX: real, grabY: real): void {
+                draggedId = id;
+                targetDropIndex = board.order.indexOf(id);
+                const rc = slotRect(id);
                 dragX = rc.x;
                 dragY = rc.y;
+                dragGrabX = grabX;
+                dragGrabY = grabY;
                 autoScrollStep = 0;
             }
 
-            function dragTo(row: int, pointerX: real, pointerY: real, grabX: real, grabY: real): void {
-                if (draggedRow !== row) {
-                    return;
-                }
-                dragPointerX = pointerX;
-                dragPointerY = pointerY;
-                dragX = pointerX - grabX;
-                dragY = pointerY - grabY;
+            function dragTo(id: string, pointerX: real, pointerY: real): void {
+                if (draggedId !== id) return;
+                dragX = pointerX - dragGrabX;
+                dragY = pointerY - dragGrabY;
 
-                // Auto-scroll when dragging near the top or bottom edge of the visible viewport
                 const edgeZone = Kirigami.Units.gridUnit * 2;
                 const viewTop = flickable.contentY;
                 const viewBottom = flickable.contentY + flickable.height;
@@ -279,106 +235,44 @@ PlasmaComponents3.ScrollView {
                     autoScrollStep = 0;
                 }
 
-                const curSlot = slotRect(row);
+                const curSlot = slotRect(id);
                 const centerX = dragX + curSlot.width / 2;
                 const centerY = dragY + curSlot.height / 2;
                 targetDropIndex = targetIndexAt(centerX, centerY);
             }
 
             function endDrag(): void {
-                if (draggedRow >= 0 && targetDropIndex >= 0) {
-                    const fromIndex = board.order.indexOf(draggedRow);
+                if (draggedId !== "" && targetDropIndex >= 0) {
+                    const fromIndex = board.order.indexOf(draggedId);
                     if (fromIndex >= 0 && targetDropIndex !== fromIndex) {
-                        moveTileToIndex(draggedRow, targetDropIndex);
+                        moveTileToIndex(draggedId, targetDropIndex);
                     }
                 }
-                draggedRow = -1;
+                draggedId = "";
                 targetDropIndex = -1;
                 autoScrollStep = 0;
             }
 
-            // Keyboard navigation, following the visual order of the tiles
-            function moveCurrent(delta: int): void {
-                const order = board.order;
-                if (order.length === 0) {
-                    return;
-                }
-                let pos = order.indexOf(currentIndex);
-                pos = pos < 0 ? 0 : Math.max(0, Math.min(order.length - 1, pos + delta));
-                currentIndex = order[pos];
-            }
-
-            Keys.onPressed: event => {
-                const tile = repeater.itemAt(currentIndex)?.item ?? null;
-                const reorderMod = (event.modifiers & (Qt.ShiftModifier | Qt.AltModifier)) !== 0;
-                switch (event.key) {
-                case Qt.Key_Left:
-                case Qt.Key_Up:
-                    if (root.editMode && reorderMod && currentIndex >= 0) {
-                        moveTileByOffset(currentIndex, -1);
-                    } else {
-                        moveCurrent(-1);
-                    }
-                    break;
-                case Qt.Key_Right:
-                case Qt.Key_Down:
-                    if (root.editMode && reorderMod && currentIndex >= 0) {
-                        moveTileByOffset(currentIndex, 1);
-                    } else {
-                        moveCurrent(1);
-                    }
-                    break;
-                case Qt.Key_Space:
-                case Qt.Key_Enter:
-                case Qt.Key_Return:
-                    if (tile) {
-                        tile.activated(Qt.point(tile.width / 2, tile.height / 2));
-                    }
-                    break;
-                case Qt.Key_Menu:
-                    if (tile) {
-                        tile.contextMenu(null);
-                    }
-                    break;
-                default:
-                    return;
-                }
-                event.accepted = true;
-            }
-
-            onActiveFocusChanged: {
-                if (activeFocus && currentIndex === -1) {
-                    currentIndex = board.order.length > 0 ? board.order[0] : -1;
-                } else if (!activeFocus && currentIndex >= 0) {
-                    currentIndex = -1;
-                }
-            }
-
             Connections {
-                target: root.hiddenModel
+                target: popup.filteredTrayModel
                 function onRowsInserted() { hiddenTasks.modelTick++; }
                 function onRowsRemoved() { hiddenTasks.modelTick++; }
                 function onModelReset() { hiddenTasks.modelTick++; }
                 function onLayoutChanged() { hiddenTasks.modelTick++; }
-                function onRowsMoved() { hiddenTasks.modelTick++; }
             }
 
             // Visual placeholder showing the target slot where the dragged tile will land
             Rectangle {
                 id: dropPlaceholder
-                visible: hiddenTasks.draggedRow >= 0 && hiddenTasks.targetDropIndex >= 0
+                visible: hiddenTasks.draggedId !== "" && hiddenTasks.targetDropIndex >= 0
                 readonly property rect targetRect: {
-                    if (hiddenTasks.draggedRow < 0 || hiddenTasks.targetDropIndex < 0) {
-                        return Qt.rect(0, 0, 0, 0);
-                    }
+                    if (hiddenTasks.draggedId === "" || hiddenTasks.targetDropIndex < 0) return Qt.rect(0, 0, 0, 0);
                     const order = hiddenTasks.board.order;
-                    if (order.length === 0) {
-                        return Qt.rect(0, 0, 0, 0);
-                    }
+                    if (order.length === 0) return Qt.rect(0, 0, 0, 0);
                     const idx = Math.max(0, Math.min(order.length - 1, hiddenTasks.targetDropIndex));
-                    const targetRow = order[idx];
-                    const targetRc = hiddenTasks.slotRect(targetRow);
-                    const draggedRc = hiddenTasks.slotRect(hiddenTasks.draggedRow);
+                    const targetId = order[idx];
+                    const targetRc = hiddenTasks.slotRect(targetId);
+                    const draggedRc = hiddenTasks.slotRect(hiddenTasks.draggedId);
                     return Qt.rect(targetRc.x, targetRc.y, draggedRc.width, draggedRc.height);
                 }
                 x: targetRect.x
@@ -386,34 +280,204 @@ PlasmaComponents3.ScrollView {
                 width: targetRect.width
                 height: targetRect.height
                 z: 10
-                radius: Math.min(Kirigami.Units.gridUnit * 1.1, height / 2)
+                radius: Kirigami.Units.gridUnit * 1.0
                 color: Qt.alpha(Kirigami.Theme.highlightColor, 0.22)
                 border.width: 2
                 border.color: Kirigami.Theme.highlightColor
 
-                Behavior on x {
-                    NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic }
-                }
-                Behavior on y {
-                    NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic }
-                }
-                Behavior on width {
-                    NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic }
-                }
-                Behavior on height {
-                    NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic }
+                Behavior on x { NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic } }
+                Behavior on y { NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic } }
+                Behavior on width { NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic } }
+                Behavior on height { NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic } }
+            }
+
+            // Components for Built-in Control Tiles
+            Component {
+                id: wifiComponent
+                ConnectivityPill {
+                    anchors.fill: parent
+                    iconName: (popup.backend && popup.backend.wifiEnabled) ? "network-wireless-connected-symbolic" : "network-wireless-disconnected-symbolic"
+                    title: i18n("Wi-Fi")
+                    statusText: {
+                        if (!popup.backend || !popup.backend.wifiEnabled) return i18n("Desactivado");
+                        const ssid = popup.backend.wifiSsid;
+                        return (ssid && ssid.length > 0) ? ssid : i18n("Activado");
+                    }
+                    active: popup.backend ? popup.backend.wifiEnabled : false
+                    onToggled: if (popup.backend) popup.backend.toggleWifi()
+                    onDetailsClicked: if (popup.backend) popup.backend.openNetworkSettings()
                 }
             }
 
+            Component {
+                id: energyComponent
+                EnergyCard {
+                    anchors.fill: parent
+                }
+            }
+
+            Component {
+                id: bluetoothComponent
+                ConnectivityPill {
+                    anchors.fill: parent
+                    iconName: (popup.backend && popup.backend.bluetoothEnabled) ? "preferences-system-bluetooth-symbolic" : "bluetooth-disabled-symbolic"
+                    title: i18n("Bluetooth")
+                    statusText: {
+                        if (!popup.backend || !popup.backend.bluetoothEnabled) return i18n("Desactivado");
+                        const dev = popup.backend.bluetoothDevice;
+                        return (dev && dev.length > 0) ? dev : i18n("Activado");
+                    }
+                    active: popup.backend ? popup.backend.bluetoothEnabled : false
+                    onToggled: if (popup.backend) popup.backend.toggleBluetooth()
+                    onDetailsClicked: if (popup.backend) popup.backend.openBluetoothSettings()
+                }
+            }
+
+            Component {
+                id: airdropComponent
+                ConnectivityPill {
+                    anchors.fill: parent
+                    iconName: "kdeconnect-symbolic"
+                    title: i18n("AirDrop")
+                    statusText: i18n("KDE Connect")
+                    active: true
+                    onToggled: if (popup.backend) popup.backend.openSystemSettings()
+                    onDetailsClicked: if (popup.backend) popup.backend.openSystemSettings()
+                }
+            }
+
+            Component {
+                id: stageManagerComponent
+                CircleButton {
+                    anchors.fill: parent
+                    iconName: "window-duplicate"
+                    toolTipText: i18n("Organizador visual (Stage Manager)")
+                    onClicked: if (popup.backend) popup.backend.toggleOverview()
+                }
+            }
+
+            Component {
+                id: screenMirroringComponent
+                CircleButton {
+                    anchors.fill: parent
+                    iconName: "video-display"
+                    toolTipText: i18n("Duplicar pantalla (Screen Mirroring)")
+                    onClicked: if (popup.backend) popup.backend.openDisplaySettings()
+                }
+            }
+
+            Component {
+                id: darkModeComponent
+                CircleButton {
+                    anchors.fill: parent
+                    iconName: {
+                        if (!popup.backend) return "weather-clear";
+                        if (popup.backend.themeMode === "auto") return "preferences-system-time";
+                        if (popup.backend.themeMode === "dark") return "weather-clear-night";
+                        return "weather-clear";
+                    }
+                    active: popup.backend ? (popup.backend.themeMode === "dark" || popup.backend.themeMode === "auto") : false
+                    toolTipText: {
+                        if (!popup.backend) return i18n("Aspecto: Modo claro");
+                        if (popup.backend.themeMode === "auto") return i18n("Aspecto: Automático");
+                        if (popup.backend.themeMode === "dark") return i18n("Aspecto: Modo oscuro");
+                        return i18n("Aspecto: Modo claro");
+                    }
+                    onClicked: if (popup.backend) popup.backend.cycleThemeMode()
+                }
+            }
+
+            Component {
+                id: nightLightComponent
+                CircleButton {
+                    anchors.fill: parent
+                    iconName: "weather-clear-night-symbolic"
+                    active: popup.backend ? popup.backend.nightLightActive : false
+                    toolTipText: (popup.backend && popup.backend.nightLightActive)
+                        ? i18n("Luz nocturna: Activa")
+                        : i18n("Luz nocturna: Inactiva")
+                    onClicked: if (popup.backend) popup.backend.toggleNightLight()
+                }
+            }
+
+            Component {
+                id: focusComponent
+                FocusPill {
+                    anchors.fill: parent
+                    active: popup.notificationsInhibited
+                    statusText: popup.notificationsInhibited ? i18n("No molestar") : i18n("Desactivado")
+                    onToggled: popup.toggleDoNotDisturb()
+                }
+            }
+
+            Component {
+                id: brightnessComponent
+                BrightnessSliderTile {
+                    anchors.fill: parent
+                    visible: popup.backend ? popup.backend.brightnessAvailable : true
+                }
+            }
+
+            Component {
+                id: volumeComponent
+                AudioSliderTile {
+                    anchors.fill: parent
+                }
+            }
+
+            Component {
+                id: lockScreenComponent
+                CircleButton {
+                    anchors.fill: parent
+                    iconName: "system-lock-screen"
+                    toolTipText: i18n("Bloquear pantalla")
+                    onClicked: if (popup.backend) popup.backend.lockScreen()
+                }
+            }
+
+            Component {
+                id: systemSettingsComponent
+                CircleButton {
+                    anchors.fill: parent
+                    iconName: "preferences-system"
+                    toolTipText: i18n("Preferencias del Sistema…")
+                    onClicked: if (popup.backend) popup.backend.openSystemSettings()
+                }
+            }
+
+            Component {
+                id: screenshotComponent
+                CircleButton {
+                    anchors.fill: parent
+                    iconName: "spectacle"
+                    toolTipText: i18n("Captura de pantalla")
+                    onClicked: if (popup.backend) popup.backend.takeScreenshot()
+                }
+            }
+
+            Component {
+                id: energySettingsComponent
+                CircleButton {
+                    anchors.fill: parent
+                    iconName: "preferences-system-power-management"
+                    toolTipText: i18n("Ajustes de energía…")
+                    onClicked: if (popup.backend) popup.backend.openEnergySettings()
+                }
+            }
+
+            // Built-in Tiles Repeater
             Repeater {
-                id: repeater
+                id: builtinRepeater
+                model: hiddenTasks.builtinItems
 
-                model: root.hiddenModel
-                delegate: ItemLoader {
-                    id: tile
+                delegate: Item {
+                    id: builtinTile
+                    required property int index
+                    required property string modelData
 
-                    readonly property bool dragged: hiddenTasks.draggedRow === index
-                    readonly property rect tileRect: hiddenTasks.slotRect(index)
+                    readonly property string itemId: modelData
+                    readonly property rect tileRect: hiddenTasks.slotRect(itemId)
+                    readonly property bool dragged: hiddenTasks.draggedId === itemId
 
                     x: dragged ? hiddenTasks.dragX : tileRect.x
                     y: dragged ? hiddenTasks.dragY : tileRect.y
@@ -423,24 +487,91 @@ PlasmaComponents3.ScrollView {
                     scale: dragged ? 1.05 : 1
                     opacity: dragged ? 0.92 : 1
 
-                    Accessible.role: Accessible.ListItem // needed to get the board description or role announced
+                    Behavior on x { enabled: !builtinTile.dragged; NumberAnimation { duration: Kirigami.Units.longDuration; easing.type: Easing.OutCubic } }
+                    Behavior on y { enabled: !builtinTile.dragged; NumberAnimation { duration: Kirigami.Units.longDuration; easing.type: Easing.OutCubic } }
+                    Behavior on width { NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic } }
+                    Behavior on height { NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic } }
+                    Behavior on scale { NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic } }
 
-                    Behavior on x {
-                        enabled: !tile.dragged
-                        NumberAnimation { duration: Kirigami.Units.longDuration; easing.type: Easing.OutCubic }
+                    Loader {
+                        anchors.fill: parent
+                        sourceComponent: {
+                            switch (builtinTile.itemId) {
+                            case "wifi": return wifiComponent;
+                            case "energy": return energyComponent;
+                            case "bluetooth": return bluetoothComponent;
+                            case "airdrop": return airdropComponent;
+                            case "stagemanager": return stageManagerComponent;
+                            case "screenmirroring": return screenMirroringComponent;
+                            case "darkmode": return darkModeComponent;
+                            case "nightlight": return nightLightComponent;
+                            case "focus": return focusComponent;
+                            case "brightness": return brightnessComponent;
+                            case "volume": return volumeComponent;
+                            case "lockscreen": return lockScreenComponent;
+                            case "systemsettings": return systemSettingsComponent;
+                            case "screenshot": return screenshotComponent;
+                            case "energysettings": return energySettingsComponent;
+                            default: return null;
+                            }
+                        }
                     }
-                    Behavior on y {
-                        enabled: !tile.dragged
-                        NumberAnimation { duration: Kirigami.Units.longDuration; easing.type: Easing.OutCubic }
+
+                    TileEditOverlay {
+                        itemId: builtinTile.itemId
+                        hiddenTasks: hiddenTasks
                     }
-                    Behavior on width {
-                        NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic }
+                }
+            }
+
+            // Dynamic Passive Tray Items Repeater
+            Repeater {
+                id: trayRepeater
+                model: popup.filteredTrayModel
+
+                delegate: Item {
+                    id: trayTile
+                    required property int index
+                    required property var model
+
+                    readonly property string itemId: {
+                        if (!model) return "";
+                        return model.Id || popup.filteredTrayModel.data(popup.filteredTrayModel.index(index, 0), hiddenTasksView.itemIdRole) || "";
                     }
-                    Behavior on height {
-                        NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic }
+                    readonly property rect tileRect: hiddenTasks.slotRect(itemId)
+                    readonly property bool dragged: hiddenTasks.draggedId === itemId
+
+                    visible: itemId.length > 0
+                    x: dragged ? hiddenTasks.dragX : tileRect.x
+                    y: dragged ? hiddenTasks.dragY : tileRect.y
+                    width: tileRect.width
+                    height: tileRect.height
+                    z: dragged ? 100 : 1
+                    scale: dragged ? 1.05 : 1
+                    opacity: dragged ? 0.92 : 1
+
+                    Behavior on x { enabled: !trayTile.dragged; NumberAnimation { duration: Kirigami.Units.longDuration; easing.type: Easing.OutCubic } }
+                    Behavior on y { enabled: !trayTile.dragged; NumberAnimation { duration: Kirigami.Units.longDuration; easing.type: Easing.OutCubic } }
+                    Behavior on width { NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic } }
+                    Behavior on height { NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic } }
+                    Behavior on scale { NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic } }
+
+                    ItemLoader {
+                        anchors.centerIn: parent
+                        width: (root.tileSize(trayTile.itemId) === "small")
+                            ? Math.min(parent.width, parent.height)
+                            : parent.width
+                        height: (root.tileSize(trayTile.itemId) === "small")
+                            ? width
+                            : parent.height
+                        index: trayTile.index
+                        effectiveStatus: PlasmaCore.Types.PassiveStatus
+                        model: trayTile.model
                     }
-                    Behavior on scale {
-                        NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic }
+
+                    TileEditOverlay {
+                        itemId: trayTile.itemId
+                        hiddenTasks: hiddenTasks
                     }
                 }
             }

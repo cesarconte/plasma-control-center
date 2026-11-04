@@ -55,14 +55,21 @@ ContainmentItem {
         return map;
     }
 
+    function defaultTileSize(itemId: string): string {
+        if (itemId === "brightness" || itemId === "volume") return "wide";
+        if (itemId === "energy") return "large";
+        if (itemId === "wifi" || itemId === "bluetooth" || itemId === "airdrop" || itemId === "focus") return "medium";
+        return "small";
+    }
+
     function tileSize(itemId: string): string {
         const size = tileSizeMap[itemId];
-        return tileSizeNames.indexOf(size) >= 0 ? size : "medium";
+        return (size && tileSizeNames.indexOf(size) >= 0) ? size : defaultTileSize(itemId);
     }
 
     function setTileSize(itemId: string, size: string): void {
         const list = Array.from(Plasmoid.configuration.tileSizes).filter(entry => !entry.startsWith(itemId + "="));
-        if (size !== "medium") {
+        if (size !== defaultTileSize(itemId)) {
             list.push(itemId + "=" + size);
         }
         Plasmoid.configuration.tileSizes = list;

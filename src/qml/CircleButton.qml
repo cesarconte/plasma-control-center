@@ -24,7 +24,9 @@ Item {
 
     Rectangle {
         id: bg
-        anchors.fill: parent
+        anchors.centerIn: parent
+        width: Math.min(parent.width, parent.height, root.diameter)
+        height: width
         radius: width / 2
         color: {
             if (mouseArea.pressed) {

@@ -23,20 +23,10 @@ Item {
 
     readonly property var backend: Plasmoid.backend
 
-    property var hiddenLayout: dummyHiddenLayout
+    property alias hiddenLayout: hiddenItemsView.layout
     property alias plasmoidContainer: container
 
-    Item {
-        id: dummyHiddenLayout
-        property int itemCount: (typeof hiddenModel !== "undefined" && hiddenModel) ? hiddenModel.count : 0
-        property int currentIndex: -1
-        property var board: ({ order: [] })
-        function forceActiveFocus() {}
-        function moveTileByOffset(idx, offset) {}
-        function moveTileToIndex(idx, target) {}
-    }
-
-    // Applets de hardware que ya tienen tarjeta propia en el Centro de Control
+    // Hardware applets that already have their own dedicated tiles in Control Center
     readonly property var redundantAppletIds: [
         "org.kde.plasma.volume",
         "org.kde.plasma.brightness",
@@ -45,10 +35,13 @@ Item {
         "org.kde.plasma.battery",
         "org.cesar.plasmacontrolcenter.darkmode",
         "org.cesar.plasmacontrolcenter.donotdisturb",
-        "org.cesar.plasmacontrolcenter.systemsettings"
+        "org.cesar.plasmacontrolcenter.systemsettings",
+        "org.cesar.plasmacontrolcenter.screenshot",
+        "org.cesar.plasmacontrolcenter.airplanemode"
     ]
 
-    // Filtro para mostrar solo elementos reales de bandeja en la rejilla inferior
+    // Filter to show only true passive system tray items in the bottom grid
+    readonly property alias filteredTrayModel: filteredTrayModel
     KItemModels.KSortFilterProxyModel {
         id: filteredTrayModel
         sourceModel: (typeof root !== "undefined" && root.hiddenModel) ? root.hiddenModel : null
@@ -86,7 +79,7 @@ Item {
     implicitWidth: Kirigami.Units.gridUnit * 24
     implicitHeight: systemTrayState.activeApplet
         ? Kirigami.Units.gridUnit * 24
-        : (controlCenterContent.implicitHeight + trayHeading.height + Kirigami.Units.largeSpacing * 2)
+        : Math.min(Kirigami.Units.gridUnit * 38, hiddenItemsView.implicitHeight + plasmoidHeading.height + Kirigami.Units.smallSpacing * 2)
 
     Layout.minimumWidth: Kirigami.Units.gridUnit * 22
     Layout.minimumHeight: Kirigami.Units.gridUnit * 22
@@ -148,6 +141,38 @@ Item {
                 elide: Text.ElideRight
             }
 
+            // Restablecer diseño a macOS por defecto
+            PlasmaComponents3.ToolButton {
+                id: resetLayoutButton
+                visible: (typeof root !== "undefined" && root.editMode) && !systemTrayState.activeApplet
+                icon.name: "edit-reset"
+                display: PlasmaComponents3.AbstractButton.IconOnly
+                text: i18n("Restablecer diseño")
+                onClicked: {
+                    Plasmoid.configuration.tileOrder = [];
+                    Plasmoid.configuration.tileSizes = [];
+                }
+                PlasmaComponents3.ToolTip {
+                    text: resetLayoutButton.text
+                }
+            }
+
+            // Modo edición de controles (Mover y cambiar tamaño)
+            PlasmaComponents3.ToolButton {
+                id: editButton
+                visible: !systemTrayState.activeApplet
+                checkable: true
+                checked: (typeof root !== "undefined" && root.editMode)
+                onToggled: if (typeof root !== "undefined") root.editMode = editButton.checked
+                icon.name: editButton.checked ? "dialog-ok-apply" : "document-edit"
+                highlighted: editButton.checked
+                display: editButton.checked ? PlasmaComponents3.AbstractButton.TextBesideIcon : PlasmaComponents3.AbstractButton.IconOnly
+                text: editButton.checked ? i18n("Hecho") : i18n("Editar controles")
+                PlasmaComponents3.ToolTip {
+                    text: editButton.checked ? i18n("Guardar organización de controles") : i18n("Reorganizar y redimensionar controles")
+                }
+            }
+
             // Pin / Mantener abierto
             PlasmaComponents3.ToolButton {
                 id: pinButton
@@ -164,234 +189,16 @@ Item {
         }
 
         // ====================================================================
-        // VISTA PRINCIPAL: macOS Golden Gate (macOS 15 Sequoia / iOS 18)
+        // VISTA PRINCIPAL: Cuadrícula Modular macOS Sequoia (Golden Gate)
+        // Tablero unificado de 4 columnas para controles del sistema y bandeja
         // ====================================================================
-        ColumnLayout {
-            id: controlCenterContent
+        HiddenItemsView {
+            id: hiddenItemsView
             Layout.fillWidth: true
+            Layout.fillHeight: !systemTrayState.activeApplet
+            Layout.preferredHeight: systemTrayState.activeApplet ? 0 : -1
             visible: systemTrayState.activeApplet === null
-            spacing: Kirigami.Units.mediumSpacing
-
-            // ----------------------------------------------------------------
-            // BLOQUE SUPERIOR (2 Columnas)
-            // ----------------------------------------------------------------
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: Kirigami.Units.mediumSpacing
-
-                // Columna Izquierda: 3 píldoras independientes (Wi-Fi, Bluetooth, KDE Connect / AirDrop)
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    Layout.preferredWidth: 1
-                    spacing: Kirigami.Units.smallSpacing
-
-                    // 1. Wi-Fi
-                    ConnectivityPill {
-                        Layout.fillWidth: true
-                        iconName: (popup.backend && popup.backend.wifiEnabled) ? "network-wireless-connected-symbolic" : "network-wireless-disconnected-symbolic"
-                        title: i18n("Wi-Fi")
-                        statusText: {
-                            if (!popup.backend || !popup.backend.wifiEnabled) return i18n("Desactivado");
-                            const ssid = popup.backend.wifiSsid;
-                            return (ssid && ssid.length > 0) ? ssid : i18n("Activado");
-                        }
-                        active: popup.backend ? popup.backend.wifiEnabled : false
-                        onToggled: if (popup.backend) popup.backend.toggleWifi()
-                        onDetailsClicked: if (popup.backend) popup.backend.openNetworkSettings()
-                    }
-
-                    // 2. Bluetooth
-                    ConnectivityPill {
-                        Layout.fillWidth: true
-                        iconName: (popup.backend && popup.backend.bluetoothEnabled) ? "preferences-system-bluetooth-symbolic" : "bluetooth-disabled-symbolic"
-                        title: i18n("Bluetooth")
-                        statusText: {
-                            if (!popup.backend || !popup.backend.bluetoothEnabled) return i18n("Desactivado");
-                            const dev = popup.backend.bluetoothDevice;
-                            return (dev && dev.length > 0) ? dev : i18n("Activado");
-                        }
-                        active: popup.backend ? popup.backend.bluetoothEnabled : false
-                        onToggled: if (popup.backend) popup.backend.toggleBluetooth()
-                        onDetailsClicked: if (popup.backend) popup.backend.openBluetoothSettings()
-                    }
-
-                    // 3. AirDrop (KDE Connect)
-                    ConnectivityPill {
-                        Layout.fillWidth: true
-                        iconName: "kdeconnect-symbolic"
-                        title: i18n("AirDrop")
-                        statusText: i18n("KDE Connect")
-                        active: true
-                        onToggled: if (popup.backend) popup.backend.openSystemSettings()
-                        onDetailsClicked: if (popup.backend) popup.backend.openSystemSettings()
-                    }
-                }
-
-                // Columna Derecha: Tarjeta 2x2 Energía + 2 botones circulares inferiores
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    Layout.preferredWidth: 1
-                    spacing: Kirigami.Units.smallSpacing
-
-                    // Tarjeta 2x2: Perfil de Energía / Batería
-                    EnergyCard {
-                        Layout.fillWidth: true
-                    }
-
-                    // Fila inferior de la columna derecha: 2 botones circulares (Stage Manager y Screen Mirroring)
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: Kirigami.Units.smallSpacing
-
-                        // 1. Stage Manager / Organizador visual
-                        CircleButton {
-                            Layout.alignment: Qt.AlignCenter
-                            iconName: "view-split-left"
-                            toolTipText: i18n("Organizador visual (Stage Manager)")
-                            onClicked: if (popup.backend) popup.backend.toggleOverview()
-                        }
-
-                        // 2. Screen Mirroring / Duplicar pantalla
-                        CircleButton {
-                            Layout.alignment: Qt.AlignCenter
-                            iconName: "video-display"
-                            toolTipText: i18n("Duplicar pantalla (Screen Mirroring)")
-                            onClicked: if (popup.backend) popup.backend.openDisplaySettings()
-                        }
-                    }
-                }
-            }
-
-            // ----------------------------------------------------------------
-            // FILA INTERMEDIA: 2 Botones Circulares + 1 Píldora Ancha (Focus)
-            // ----------------------------------------------------------------
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: Kirigami.Units.smallSpacing
-
-                // 1. Círculo: Aspecto (Modo Claro / Oscuro / Auto)
-                CircleButton {
-                    iconName: {
-                        if (!popup.backend) return "weather-clear";
-                        if (popup.backend.themeMode === "auto") return "preferences-system-time";
-                        if (popup.backend.themeMode === "dark") return "weather-clear-night";
-                        return "weather-clear";
-                    }
-                    active: popup.backend ? (popup.backend.themeMode === "dark" || popup.backend.themeMode === "auto") : false
-                    toolTipText: {
-                        if (!popup.backend) return i18n("Aspecto: Modo claro");
-                        if (popup.backend.themeMode === "auto") return i18n("Aspecto: Automático");
-                        if (popup.backend.themeMode === "dark") return i18n("Aspecto: Modo oscuro");
-                        return i18n("Aspecto: Modo claro");
-                    }
-                    onClicked: if (popup.backend) popup.backend.cycleThemeMode()
-                }
-
-                // 2. Círculo: Luz nocturna (Night Shift / True Tone)
-                CircleButton {
-                    iconName: "weather-clear-night-symbolic"
-                    active: popup.backend ? popup.backend.nightLightActive : false
-                    toolTipText: (popup.backend && popup.backend.nightLightActive)
-                        ? i18n("Luz nocturna: Activa")
-                        : i18n("Luz nocturna: Inactiva")
-                    onClicked: if (popup.backend) popup.backend.toggleNightLight()
-                }
-
-                // 3. Píldora Ancha: Concentración (Focus / No molestar)
-                FocusPill {
-                    Layout.fillWidth: true
-                    active: popup.notificationsInhibited
-                    statusText: popup.notificationsInhibited ? i18n("No molestar") : i18n("Desactivado")
-                    onToggled: popup.toggleDoNotDisturb()
-                }
-            }
-
-            // ----------------------------------------------------------------
-            // SLIDERS: Pantalla y Sonido
-            // ----------------------------------------------------------------
-            BrightnessSliderTile {
-                Layout.fillWidth: true
-                visible: popup.backend ? popup.backend.brightnessAvailable : true
-            }
-
-            AudioSliderTile {
-                Layout.fillWidth: true
-            }
-
-            // ----------------------------------------------------------------
-            // CUADRÍCULA INFERIOR: Botones de Acción y Bandeja del Sistema
-            // Rejilla de 4 columnas (idéntica a la Imagen 1 de Sequoia)
-            // ----------------------------------------------------------------
-            GridLayout {
-                Layout.fillWidth: true
-                columns: 4
-                rowSpacing: Kirigami.Units.smallSpacing
-                columnSpacing: Kirigami.Units.smallSpacing
-
-                // 1. Bloquear pantalla
-                CircleButton {
-                    Layout.alignment: Qt.AlignCenter
-                    iconName: "system-lock-screen"
-                    toolTipText: i18n("Bloquear pantalla")
-                    onClicked: if (popup.backend) popup.backend.lockScreen()
-                }
-
-                // 2. Preferencias del Sistema
-                CircleButton {
-                    Layout.alignment: Qt.AlignCenter
-                    iconName: "preferences-system"
-                    toolTipText: i18n("Preferencias del Sistema…")
-                    onClicked: if (popup.backend) popup.backend.openSystemSettings()
-                }
-
-                // 3. Captura de pantalla
-                CircleButton {
-                    Layout.alignment: Qt.AlignCenter
-                    iconName: "spectacle"
-                    toolTipText: i18n("Captura de pantalla")
-                    onClicked: if (popup.backend) popup.backend.takeScreenshot()
-                }
-
-                // 4. Ajustes de energía
-                CircleButton {
-                    Layout.alignment: Qt.AlignCenter
-                    iconName: "preferences-system-power-management"
-                    toolTipText: i18n("Ajustes de energía…")
-                    onClicked: if (popup.backend) popup.backend.openEnergySettings()
-                }
-
-                // Elementos dinámicos reales de la bandeja (Telegram, VPN, Cachy-Update, etc.)
-                Repeater {
-                    model: filteredTrayModel
-
-                    delegate: Item {
-                        id: traySlot
-                        required property int index
-                        required property var model
-
-                        Layout.alignment: Qt.AlignCenter
-                        implicitWidth: Math.round(Kirigami.Units.gridUnit * 2.8)
-                        implicitHeight: implicitWidth
-
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: width / 2
-                            color: Kirigami.Theme.alternateBackgroundColor
-                            border.width: 1
-                            border.color: Qt.alpha(Kirigami.Theme.textColor, 0.08)
-
-                            ItemLoader {
-                                anchors.centerIn: parent
-                                width: Kirigami.Units.iconSizes.smallMedium
-                                height: width
-                                index: traySlot.index
-                                effectiveStatus: PlasmaCore.Types.PassiveStatus
-                                model: traySlot.model
-                            }
-                        }
-                    }
-                }
-            }
+            enabled: systemTrayState.activeApplet === null
         }
 
         // ====================================================================

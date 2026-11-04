@@ -26,6 +26,12 @@ PlasmaComponents3.ScrollView {
     contentWidth: availableWidth
     implicitHeight: visible ? (hiddenTasks.height + hiddenTasks.margin * 2) : 0
 
+    onVisibleChanged: {
+        if (visible) {
+            hiddenTasks.modelTick++;
+        }
+    }
+
     // Qt.UserRole + 2 is BaseRole::ItemId
     readonly property int itemIdRole: Qt.UserRole + 2
 
@@ -86,12 +92,63 @@ PlasmaComponents3.ScrollView {
 
             activeFocusOnTab: true
 
-            readonly property var builtinItems: [
+            readonly property var candidateBuiltinItems: [
                 "wifi", "energy", "bluetooth", "airdrop",
                 "stagemanager", "screenmirroring", "darkmode", "nightlight", "focus",
                 "brightness", "volume",
                 "lockscreen", "systemsettings", "screenshot", "energysettings"
             ]
+
+            function isTileVisible(id: string): bool {
+                const extra = Array.from(Plasmoid.configuration.extraItems || []);
+                const shown = Array.from(Plasmoid.configuration.shownItems || []);
+                const disabledSni = Array.from(Plasmoid.configuration.disabledStatusNotifiers || []);
+
+                // Si está explícitamente en la lista de deshabilitados o mostrado en el panel
+                if (disabledSni.includes(id) || shown.includes(id)) {
+                    return false;
+                }
+
+                // Mapeo de identificadores de ficha a IDs de plugin de plasmoide
+                const pluginMap = {
+                    "systemsettings": "org.cesar.plasmacontrolcenter.systemsettings",
+                    "screenshot": "org.cesar.plasmacontrolcenter.screenshot",
+                    "darkmode": "org.cesar.plasmacontrolcenter.darkmode",
+                    "focus": "org.cesar.plasmacontrolcenter.donotdisturb",
+                    "airplanemode": "org.cesar.plasmacontrolcenter.airplanemode",
+                    "screenmirroring": "org.kde.kscreen",
+                    "energy": "org.kde.plasma.battery"
+                };
+
+                const pluginId = pluginMap[id];
+                if (pluginId) {
+                    if (disabledSni.includes(pluginId) || shown.includes(pluginId)) {
+                        return false;
+                    }
+
+                    // Plasmoides modulares gestionados a través de extraItems
+                    // Al seleccionarse "Nunca mostrar (desactivado)" en Preferencias, se eliminan de extraItems
+                    const modularPlugins = [
+                        "org.cesar.plasmacontrolcenter.systemsettings",
+                        "org.cesar.plasmacontrolcenter.screenshot",
+                        "org.cesar.plasmacontrolcenter.darkmode",
+                        "org.cesar.plasmacontrolcenter.donotdisturb",
+                        "org.cesar.plasmacontrolcenter.airplanemode",
+                        "org.kde.kscreen",
+                        "org.kde.plasma.battery"
+                    ];
+                    if (modularPlugins.includes(pluginId)) {
+                        return extra.includes(pluginId);
+                    }
+                }
+
+                return true;
+            }
+
+            readonly property var builtinItems: {
+                modelTick;
+                return candidateBuiltinItems.filter(id => isTileVisible(id));
+            }
 
             readonly property var allItems: {
                 modelTick;
@@ -101,7 +158,7 @@ PlasmaComponents3.ScrollView {
                     for (let i = 0; i < cnt; ++i) {
                         const idx = popup.filteredTrayModel.index(i, 0);
                         const id = popup.filteredTrayModel.data(idx, hiddenTasksView.itemIdRole) || "";
-                        if (id && !list.includes(id)) {
+                        if (id && !list.includes(id) && isTileVisible(id)) {
                             list.push(id);
                         }
                     }
@@ -251,6 +308,16 @@ PlasmaComponents3.ScrollView {
                 draggedId = "";
                 targetDropIndex = -1;
                 autoScrollStep = 0;
+            }
+
+            Connections {
+                target: Plasmoid.configuration
+                function onExtraItemsChanged() { hiddenTasks.modelTick++; }
+                function onShownItemsChanged() { hiddenTasks.modelTick++; }
+                function onHiddenItemsChanged() { hiddenTasks.modelTick++; }
+                function onDisabledStatusNotifiersChanged() { hiddenTasks.modelTick++; }
+                function onTileOrderChanged() { hiddenTasks.modelTick++; }
+                function onTileSizesChanged() { hiddenTasks.modelTick++; }
             }
 
             Connections {

@@ -403,19 +403,6 @@ Item {
                 }
             }
 
-            // Preferencias del Sistema (visible en pestaña Centro de Control)
-            PlasmaComponents3.ToolButton {
-                id: preferencesButton
-                visible: !systemTrayState.activeApplet && popup.currentTab === 0
-                icon.name: "preferences-system"
-                display: PlasmaComponents3.AbstractButton.IconOnly
-                text: i18n("Preferencias del Sistema…")
-                onClicked: if (popup.backend) popup.backend.openSystemSettings()
-                PlasmaComponents3.ToolTip {
-                    text: preferencesButton.text
-                }
-            }
-
             // Pin / Mantener abierto
             PlasmaComponents3.ToolButton {
                 id: pinButton

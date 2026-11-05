@@ -95,6 +95,7 @@ PlasmaComponents3.ScrollView {
             function isTileVisible(id: string): bool {
                 const extra = Array.from(Plasmoid.configuration.extraItems || []);
                 const shown = Array.from(Plasmoid.configuration.shownItems || []);
+                const ccItems = Array.from(Plasmoid.configuration.controlCenterItems || []);
                 const disabledSni = Array.from(Plasmoid.configuration.disabledStatusNotifiers || []);
 
                 if (disabledSni.includes(id) || shown.includes(id)) {
@@ -105,7 +106,12 @@ PlasmaComponents3.ScrollView {
                     "darkmode": "org.cesar.plasmacontrolcenter.darkmode",
                     "focus": "org.cesar.plasmacontrolcenter.donotdisturb",
                     "airdrop": "org.cesar.plasmacontrolcenter.airplanemode",
-                    "energy": "org.kde.plasma.battery"
+                    "energy": "org.kde.plasma.battery",
+                    "volume": "org.kde.plasma.volume",
+                    "brightness": "org.kde.plasma.brightness",
+                    "wifi": "org.kde.plasma.networkmanagement",
+                    "bluetooth": "org.kde.plasma.bluetooth",
+                    "nightlight": "org.kde.plasma.nightcolorcontrol"
                 };
 
                 const pluginId = pluginMap[id];
@@ -118,7 +124,14 @@ PlasmaComponents3.ScrollView {
                         "org.cesar.plasmacontrolcenter.donotdisturb"
                     ];
                     if (modularPlugins.includes(pluginId)) {
-                        return extra.includes(pluginId);
+                        if (!extra.includes(pluginId)) return false;
+                    }
+                    if (ccItems.length > 0 && !ccItems.includes(pluginId) && !ccItems.includes(id)) {
+                        return false;
+                    }
+                } else {
+                    if (ccItems.length > 0 && !ccItems.includes(id)) {
+                        return false;
                     }
                 }
 
@@ -295,6 +308,7 @@ PlasmaComponents3.ScrollView {
                 target: Plasmoid.configuration
                 function onControlCenterTileOrderChanged() { ccTasks.modelTick++; }
                 function onControlCenterTileSizesChanged() { ccTasks.modelTick++; }
+                function onControlCenterItemsChanged() { ccTasks.modelTick++; }
                 function onExtraItemsChanged() { ccTasks.modelTick++; }
                 function onShownItemsChanged() { ccTasks.modelTick++; }
                 function onHiddenItemsChanged() { ccTasks.modelTick++; }
@@ -505,12 +519,7 @@ PlasmaComponents3.ScrollView {
                         id: dmSmall
                         CircleButton {
                             anchors.fill: parent
-                            iconName: {
-                                if (!popup.backend) return "weather-clear";
-                                if (popup.backend.themeMode === "auto") return "preferences-system-time";
-                                if (popup.backend.themeMode === "dark") return "weather-clear-night";
-                                return "weather-clear";
-                            }
+                            iconName: (popup.backend && popup.backend.darkMode) ? "weather-clear-night" : "weather-clear"
                             active: popup.backend ? (popup.backend.themeMode === "dark" || popup.backend.themeMode === "auto") : false
                             toolTipText: {
                                 if (!popup.backend) return i18n("Aspecto: Modo claro");
@@ -525,12 +534,7 @@ PlasmaComponents3.ScrollView {
                         id: dmPill
                         QuickToggleTile {
                             anchors.fill: parent
-                            iconName: {
-                                if (!popup.backend) return "weather-clear";
-                                if (popup.backend.themeMode === "auto") return "preferences-system-time";
-                                if (popup.backend.themeMode === "dark") return "weather-clear-night";
-                                return "weather-clear";
-                            }
+                            iconName: (popup.backend && popup.backend.darkMode) ? "weather-clear-night" : "weather-clear"
                             title: i18n("Aspecto")
                             statusText: {
                                 if (!popup.backend) return i18n("Modo claro");

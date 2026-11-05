@@ -61,6 +61,10 @@
       <label>User-defined order of the tiles in the Control Center tab, as a list of item identifiers.</label>
       <default></default>
     </entry>
+    <entry name="controlCenterItems" type="StringList">
+      <label>Items configured to be shown in the Control Center tab.</label>
+      <default>org.cesar.plasmacontrolcenter.darkmode,org.cesar.plasmacontrolcenter.donotdisturb,org.kde.plasma.battery,org.kde.plasma.networkmanagement,org.kde.plasma.bluetooth,org.kde.plasma.volume,org.kde.plasma.brightness,wifi,bluetooth,airdrop,focus,nightlight,darkmode,energy,brightness,volume</default>
+    </entry>
   </group>
 
 </kcfg>

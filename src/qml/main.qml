@@ -142,9 +142,43 @@ ContainmentItem {
         dynamicSortFilter: !systemTrayState.expanded
         filterRowCallback: (sourceRow, sourceParent) => {
             let value = sourceModel.data(sourceModel.index(sourceRow, 0, sourceParent), filterRole);
-            return value === PlasmaCore.Types.PassiveStatus
+            if (value !== PlasmaCore.Types.PassiveStatus) {
+                return false;
+            }
+            const itemId = sourceModel.data(sourceModel.index(sourceRow, 0, sourceParent), Qt.UserRole + 2) || "";
+            const ccList = Array.from(Plasmoid.configuration.controlCenterItems || []);
+            const hiddenList = Array.from(Plasmoid.configuration.hiddenItems || []);
+
+            if (ccList.includes(itemId)) {
+                return false;
+            }
+
+            const ccDefaults = [
+                "org.cesar.plasmacontrolcenter.darkmode",
+                "org.cesar.plasmacontrolcenter.donotdisturb",
+                "org.kde.plasma.battery",
+                "org.kde.plasma.networkmanagement",
+                "org.kde.plasma.bluetooth",
+                "org.kde.plasma.volume",
+                "org.kde.plasma.brightness"
+            ];
+            if (ccDefaults.includes(itemId) && !hiddenList.includes(itemId)) {
+                return false;
+            }
+
+            return true;
         }
         Component.onCompleted: sourceModel = Plasmoid.systemTrayModel // avoid unnecessary binding, it causes loops
+    }
+
+    Connections {
+        target: Plasmoid.configuration
+        function onControlCenterItemsChanged() {
+            hiddenModel.invalidateFilter();
+        }
+        function onHiddenItemsChanged() {
+            hiddenModel.invalidateFilter();
+        }
     }
 
     // Re-evaluate filters when the popup closes to apply any status changes

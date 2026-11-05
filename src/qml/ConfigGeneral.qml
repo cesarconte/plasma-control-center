@@ -37,6 +37,7 @@ KCMUtils.ScrollViewKCM {
     property list<string> cfg_hiddenItems: []
     property list<string> cfg_extraItems: []
     property list<string> cfg_disabledStatusNotifiers: []
+    property list<string> cfg_controlCenterItems: []
     property list<string> cfg_tileSizes: []
     property list<string> cfg_tileOrder: []
 
@@ -79,24 +80,30 @@ KCMUtils.ScrollViewKCM {
 
     // We can share one combobox model across all delegates, they all have the same options
     readonly property var comboBoxModel: {
+        const controlCenterElement = {
+            "value": "controlcenter",
+            "text": i18n("Mostrar en Centro de Control")
+        };
+        const trayElement = {
+            "value": "hidden",
+            "text": i18n("Mostrar en Bandeja del Sistema")
+        };
         const autoElement = {
             "value": "auto",
-            "text": i18nc("@item:inlistbox Show this System Tray item when relevant", "Show when relevant")
+            "text": i18n("Mostrar cuando sea relevante (Bandeja)")
         };
         const shownElement = {
             "value": "shown",
-            "text": i18nc("@item:inlistbox Always show this System Tray item", "Always show")
-        };
-        const hiddenElement = {
-            "value": "hidden",
-            "text": i18nc("@item:inlistbox Show this System Tray item only in the expanded popup", "Show only in popup")
+            "text": i18n("Mostrar siempre en el panel")
         };
         const disabledElement = {
             "value": "disabled",
-            "text": i18nc("@item:inlistbox Never show this System Tray item; disable it", "Never show (disabled)")
+            "text": i18n("Nunca mostrar (desactivado)")
         };
 
-        return cfg_showAllItems ? [autoElement, disabledElement] : [autoElement, shownElement, hiddenElement, disabledElement];
+        return cfg_showAllItems
+            ? [autoElement, disabledElement]
+            : [controlCenterElement, trayElement, autoElement, shownElement, disabledElement];
     }
 
     readonly property var changedShortcuts: new Map()
@@ -113,6 +120,7 @@ KCMUtils.ScrollViewKCM {
         changedVisibility.clear();
         cfg_shownItemsChanged();
         cfg_hiddenItemsChanged();
+        cfg_controlCenterItemsChanged();
         cfg_extraItemsChanged();
         cfg_disabledStatusNotifiersChanged();
         changedShortcutsChanged();
@@ -122,14 +130,37 @@ KCMUtils.ScrollViewKCM {
     function updateVisibility(itemId: string, visibility: string): void {
         const shownIndex = cfg_shownItems.indexOf(itemId);
         const hiddenIndex = cfg_hiddenItems.indexOf(itemId);
+        const ccIndex = cfg_controlCenterItems.indexOf(itemId);
         const extraIndex = cfg_extraItems.indexOf(itemId);
         const disabledSniIndex = cfg_disabledStatusNotifiers.indexOf(itemId);
+
+        const itemAliases = {
+            "org.cesar.plasmacontrolcenter.darkmode": "darkmode",
+            "org.cesar.plasmacontrolcenter.donotdisturb": "focus",
+            "org.cesar.plasmacontrolcenter.airplanemode": "airdrop",
+            "org.kde.plasma.battery": "energy",
+            "org.kde.plasma.networkmanagement": "wifi",
+            "org.kde.plasma.bluetooth": "bluetooth",
+            "org.kde.plasma.volume": "volume",
+            "org.kde.plasma.brightness": "brightness",
+            "org.kde.plasma.nightcolorcontrol": "nightlight"
+        };
+        const alias = itemAliases[itemId];
 
         if (shownIndex > -1) {
             cfg_shownItems.splice(shownIndex, 1);
         }
         if (hiddenIndex > -1) {
             cfg_hiddenItems.splice(hiddenIndex, 1);
+        }
+        if (ccIndex > -1) {
+            cfg_controlCenterItems.splice(ccIndex, 1);
+        }
+        if (alias) {
+            const aliasCcIndex = cfg_controlCenterItems.indexOf(alias);
+            if (aliasCcIndex > -1) {
+                cfg_controlCenterItems.splice(aliasCcIndex, 1);
+            }
         }
         if (extraIndex > -1) {
             cfg_extraItems.splice(extraIndex, 1);
@@ -139,6 +170,14 @@ KCMUtils.ScrollViewKCM {
         }
 
         switch (visibility) {
+        case "controlcenter":
+        case "controlcenter-sni":
+            cfg_controlCenterItems.push(itemId);
+            if (alias && cfg_controlCenterItems.indexOf(alias) === -1) {
+                cfg_controlCenterItems.push(alias);
+            }
+            cfg_extraItems.push(itemId);
+            break;
         case "auto":
         case "auto-sni":
             cfg_extraItems.push(itemId);
@@ -476,11 +515,25 @@ KCMUtils.ScrollViewKCM {
                     readonly property string originalVisibility: {
                         if (iconsPage.cfg_showAllItems || iconsPage.cfg_shownItems.indexOf(listItem.itemId) !== -1) {
                             return "shown";
+                        } else if (iconsPage.cfg_controlCenterItems.indexOf(listItem.itemId) !== -1) {
+                            return "controlcenter";
                         } else if (iconsPage.cfg_hiddenItems.indexOf(listItem.itemId) !== -1) {
                             return "hidden";
                         } else if ((listItem.isPlasmoid && iconsPage.cfg_extraItems.indexOf(listItem.itemId) === -1) || (!listItem.isPlasmoid && iconsPage.cfg_disabledStatusNotifiers.indexOf(listItem.itemId) > -1)) {
                             return "disabled";
                         } else {
+                            const ccDefaults = [
+                                "org.cesar.plasmacontrolcenter.darkmode",
+                                "org.cesar.plasmacontrolcenter.donotdisturb",
+                                "org.kde.plasma.battery",
+                                "org.kde.plasma.networkmanagement",
+                                "org.kde.plasma.bluetooth",
+                                "org.kde.plasma.volume",
+                                "org.kde.plasma.brightness"
+                            ];
+                            if (ccDefaults.includes(listItem.itemId)) {
+                                return "controlcenter";
+                            }
                             return "auto";
                         }
                     }

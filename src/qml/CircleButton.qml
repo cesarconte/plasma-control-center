@@ -18,6 +18,7 @@ Item {
     property real diameter: Math.round(Kirigami.Units.gridUnit * 2.8)
 
     signal clicked()
+    signal rightClicked(var mouse)
 
     implicitWidth: diameter
     implicitHeight: diameter
@@ -58,9 +59,16 @@ Item {
         MouseArea {
             id: mouseArea
             anchors.fill: parent
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: root.clicked()
+            onClicked: mouse => {
+                if (mouse.button === Qt.RightButton) {
+                    root.rightClicked(mouse);
+                } else {
+                    root.clicked();
+                }
+            }
         }
     }
 

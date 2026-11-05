@@ -177,12 +177,53 @@ PlasmaComponents3.ScrollView {
                 return list;
             }
 
+            property var _trayRoleMap: ({})
+
+            function getTrayRole(roleName: string, fallback: int): int {
+                if (_trayRoleMap[roleName] !== undefined) {
+                    return _trayRoleMap[roleName];
+                }
+                const model = Plasmoid.systemTrayModel;
+                if (model && typeof model.roleNames === "function") {
+                    const roles = model.roleNames();
+                    for (const k in roles) {
+                        _trayRoleMap[roles[k]] = Number(k);
+                    }
+                }
+                return (_trayRoleMap[roleName] !== undefined) ? _trayRoleMap[roleName] : fallback;
+            }
+
+            function extraRoleData(id: string, roleName: string, fallbackRole: int) {
+                const r = findTrayModelRow(id);
+                if (r < 0) return undefined;
+                const model = Plasmoid.systemTrayModel;
+                if (!model) return undefined;
+                const roleId = getTrayRole(roleName, fallbackRole);
+                const idx = model.index(r, 0);
+                return model.data(idx, roleId);
+            }
+
             function findTrayModelRow(id: string): int {
                 const model = Plasmoid.systemTrayModel;
                 if (!model) return -1;
-                for (let i = 0; i < model.rowCount(); ++i) {
+                const count = model.rowCount();
+                for (let i = 0; i < count; ++i) {
                     const idx = model.index(i, 0);
                     if (model.data(idx, Qt.UserRole + 2) === id) {
+                        return i;
+                    }
+                }
+                const idRole = getTrayRole("Id", 371);
+                for (let i = 0; i < count; ++i) {
+                    const idx = model.index(i, 0);
+                    if (model.data(idx, idRole) === id) {
+                        return i;
+                    }
+                }
+                const deRole = getTrayRole("DataEngineSource", 363);
+                for (let i = 0; i < count; ++i) {
+                    const idx = model.index(i, 0);
+                    if (model.data(idx, deRole) === id) {
                         return i;
                     }
                 }
@@ -193,31 +234,67 @@ PlasmaComponents3.ScrollView {
                 const r = findTrayModelRow(id);
                 if (r < 0) return id;
                 const idx = Plasmoid.systemTrayModel.index(r, 0);
-                return Plasmoid.systemTrayModel.data(idx, Qt.DisplayRole) || id;
+                const t = extraRoleData(id, "Title", 375)
+                    || Plasmoid.systemTrayModel.data(idx, Qt.DisplayRole)
+                    || extraRoleData(id, "ToolTipTitle", 377);
+                return (t && typeof t === "string" && t.length > 0) ? t : id;
             }
 
             function extraIcon(id: string): string {
                 const r = findTrayModelRow(id);
                 if (r < 0) return "application-x-executable";
+                const iconName = extraRoleData(id, "IconName", 369);
+                if (iconName && typeof iconName === "string" && iconName.length > 0) return iconName;
                 const idx = Plasmoid.systemTrayModel.index(r, 0);
                 return Plasmoid.systemTrayModel.data(idx, Qt.DecorationRole) || "application-x-executable";
             }
 
             function extraStatus(id: string): string {
+                const sub = extraRoleData(id, "ToolTipSubTitle", 376);
+                if (sub && typeof sub === "string" && sub.length > 0) return sub;
+                const tt = extraRoleData(id, "ToolTipTitle", 377);
+                const title = extraTitle(id);
+                if (tt && typeof tt === "string" && tt.length > 0 && tt !== title) return tt;
                 const r = findTrayModelRow(id);
-                if (r < 0) return "";
-                const idx = Plasmoid.systemTrayModel.index(r, 0);
-                return Plasmoid.systemTrayModel.data(idx, Qt.ToolTipRole) || "";
+                if (r >= 0) {
+                    const idx = Plasmoid.systemTrayModel.index(r, 0);
+                    const st = Plasmoid.systemTrayModel.data(idx, Qt.UserRole + 5);
+                    if (st === PlasmaCore.Types.ActiveStatus || st === "Active" || st === 1) {
+                        return i18n("Activo");
+                    }
+                }
+                return "";
             }
 
-            function activateExtra(id: string): void {
-                const r = findTrayModelRow(id);
-                if (r < 0) return;
-                const idx = Plasmoid.systemTrayModel.index(r, 0);
-                const source = Plasmoid.systemTrayModel.data(idx, Qt.UserRole);
-                if (source) {
-                    Plasmoid.activate(source, Qt.point(0, 0), controlCenterView);
+            function extraService(id: string): string {
+                return extraRoleData(id, "DataEngineSource", 363) || "";
+            }
+
+            function activateExtra(id: string, visualItem: var, px: real, py: real): void {
+                const s = extraService(id);
+                if (!s) return;
+                const itemIsMenu = Boolean(extraRoleData(id, "ItemIsMenu", 372));
+                const target = visualItem || controlCenterView;
+                const posX = (px !== undefined && !isNaN(px)) ? px : (target.width / 2);
+                const posY = (py !== undefined && !isNaN(py)) ? py : (target.height / 2);
+                const rawPos = Plasmoid.popupPosition(target, Math.round(posX), Math.round(posY));
+                const pos = Qt.point(Math.round(rawPos.x), Math.round(rawPos.y));
+                if (itemIsMenu) {
+                    Plasmoid.openContextMenu(s, pos, target);
+                } else {
+                    Plasmoid.activate(s, pos, target);
                 }
+            }
+
+            function openExtraMenu(id: string, visualItem: var, px: real, py: real): void {
+                const s = extraService(id);
+                if (!s) return;
+                const target = visualItem || controlCenterView;
+                const posX = (px !== undefined && !isNaN(px)) ? px : (target.width / 2);
+                const posY = (py !== undefined && !isNaN(py)) ? py : (target.height / 2);
+                const rawPos = Plasmoid.popupPosition(target, Math.round(posX), Math.round(posY));
+                const pos = Qt.point(Math.round(rawPos.x), Math.round(rawPos.y));
+                Plasmoid.openContextMenu(s, pos, target);
             }
 
             readonly property var allItems: builtInVisible.concat(extraVisible)
@@ -392,6 +469,14 @@ PlasmaComponents3.ScrollView {
                 function onShownItemsChanged() { ccTasks.modelTick++; }
                 function onHiddenItemsChanged() { ccTasks.modelTick++; }
                 function onDisabledStatusNotifiersChanged() { ccTasks.modelTick++; }
+            }
+
+            Connections {
+                target: Plasmoid.systemTrayModel
+                function onRowsInserted() { ccTasks.modelTick++; }
+                function onRowsRemoved() { ccTasks.modelTick++; }
+                function onModelReset() { ccTasks.modelTick++; }
+                function onDataChanged() { ccTasks.modelTick++; }
             }
 
             Connections {
@@ -834,25 +919,119 @@ PlasmaComponents3.ScrollView {
                     Loader {
                         anchors.fill: parent
                         sourceComponent: (root.ccTileSize(extraTileRoot.extraItemId) === "small") ? extraSmall : extraPill
+
                         Component {
                             id: extraSmall
-                            CircleButton {
+                            Item {
+                                id: smallItem
                                 anchors.fill: parent
-                                iconName: ccTasks.extraIcon(extraTileRoot.extraItemId)
-                                toolTipText: ccTasks.extraTitle(extraTileRoot.extraItemId)
-                                active: true
-                                onClicked: ccTasks.activateExtra(extraTileRoot.extraItemId)
+
+                                CircleButton {
+                                    id: circleBtn
+                                    anchors.fill: parent
+                                    iconName: ccTasks.extraIcon(extraTileRoot.extraItemId)
+                                    toolTipText: ccTasks.extraTitle(extraTileRoot.extraItemId)
+                                    active: true
+                                    onClicked: ccTasks.activateExtra(extraTileRoot.extraItemId, circleBtn, circleBtn.width / 2, circleBtn.height / 2)
+                                    onRightClicked: mouse => ccTasks.openExtraMenu(extraTileRoot.extraItemId, circleBtn, mouse.x, mouse.y)
+                                }
                             }
                         }
+
                         Component {
                             id: extraPill
-                            QuickToggleTile {
+                            Item {
+                                id: pillItem
                                 anchors.fill: parent
-                                iconName: ccTasks.extraIcon(extraTileRoot.extraItemId)
-                                title: ccTasks.extraTitle(extraTileRoot.extraItemId)
-                                statusText: ccTasks.extraStatus(extraTileRoot.extraItemId)
-                                active: true
-                                onToggled: ccTasks.activateExtra(extraTileRoot.extraItemId)
+
+                                implicitWidth: Kirigami.Units.gridUnit * 12
+                                implicitHeight: Math.round(Kirigami.Units.gridUnit * 2.8)
+
+                                CardBackground {
+                                    id: cardBg
+                                    anchors.fill: parent
+                                    interactive: true
+                                    hovered: mainMouse.containsMouse || chevronBtn.hovered
+                                    pressed: mainMouse.pressed || chevronBtn.pressed
+                                }
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: Kirigami.Units.smallSpacing
+                                    spacing: Kirigami.Units.smallSpacing
+
+                                    // Circular Icon
+                                    Rectangle {
+                                        Layout.preferredWidth: Math.round(Kirigami.Units.gridUnit * 2.1)
+                                        Layout.preferredHeight: Layout.preferredWidth
+                                        radius: Layout.preferredWidth / 2
+                                        color: Kirigami.Theme.highlightColor
+
+                                        Behavior on color {
+                                            ColorAnimation { duration: Kirigami.Units.shortDuration }
+                                        }
+
+                                        Kirigami.Icon {
+                                            anchors.centerIn: parent
+                                            implicitWidth: Kirigami.Units.iconSizes.smallMedium
+                                            implicitHeight: implicitWidth
+                                            source: ccTasks.extraIcon(extraTileRoot.extraItemId)
+                                            color: Kirigami.Theme.highlightedTextColor
+                                        }
+                                    }
+
+                                    // Title & Status
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        Layout.fillHeight: true
+                                        Layout.alignment: Qt.AlignVCenter
+                                        spacing: 1
+
+                                        PlasmaComponents3.Label {
+                                            Layout.fillWidth: true
+                                            text: ccTasks.extraTitle(extraTileRoot.extraItemId)
+                                            font.weight: Font.DemiBold
+                                            font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
+                                            elide: Text.ElideRight
+                                        }
+
+                                        PlasmaComponents3.Label {
+                                            Layout.fillWidth: true
+                                            text: ccTasks.extraStatus(extraTileRoot.extraItemId)
+                                            font.pointSize: Kirigami.Theme.smallFont.pointSize * 0.9
+                                            opacity: 0.75
+                                            elide: Text.ElideRight
+                                            visible: text.length > 0
+                                        }
+                                    }
+
+                                    // Chevron ToolButton for context menu
+                                    PlasmaComponents3.ToolButton {
+                                        id: chevronBtn
+                                        icon.name: "go-next-symbolic"
+                                        display: PlasmaComponents3.AbstractButton.IconOnly
+                                        implicitWidth: Kirigami.Units.iconSizes.small
+                                        implicitHeight: implicitWidth
+                                        onClicked: ccTasks.openExtraMenu(extraTileRoot.extraItemId, chevronBtn, chevronBtn.width / 2, chevronBtn.height / 2)
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: mainMouse
+                                    anchors.fill: parent
+                                    anchors.rightMargin: chevronBtn.width + Kirigami.Units.smallSpacing
+                                    acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+
+                                    onClicked: mouse => {
+                                        if (mouse.button === Qt.RightButton) {
+                                            ccTasks.openExtraMenu(extraTileRoot.extraItemId, pillItem, mouse.x, mouse.y);
+                                        } else {
+                                            ccTasks.activateExtra(extraTileRoot.extraItemId, pillItem, mouse.x, mouse.y);
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

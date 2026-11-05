@@ -137,13 +137,15 @@ KCMUtils.ScrollViewKCM {
         const itemAliases = {
             "org.cesar.plasmacontrolcenter.darkmode": "darkmode",
             "org.cesar.plasmacontrolcenter.donotdisturb": "focus",
-            "org.cesar.plasmacontrolcenter.airplanemode": "airdrop",
+            "org.cesar.plasmacontrolcenter.airplanemode": "airplanemode",
             "org.kde.plasma.battery": "energy",
             "org.kde.plasma.networkmanagement": "wifi",
             "org.kde.plasma.bluetooth": "bluetooth",
             "org.kde.plasma.volume": "volume",
             "org.kde.plasma.brightness": "brightness",
-            "org.kde.plasma.nightcolorcontrol": "nightlight"
+            "org.kde.plasma.nightcolorcontrol": "nightlight",
+            "org.kde.kscreen": "kscreen",
+            "org.kde.kdeconnect": "airdrop"
         };
         const alias = itemAliases[itemId];
 
@@ -525,11 +527,13 @@ KCMUtils.ScrollViewKCM {
                             const ccDefaults = [
                                 "org.cesar.plasmacontrolcenter.darkmode",
                                 "org.cesar.plasmacontrolcenter.donotdisturb",
+                                "org.cesar.plasmacontrolcenter.airplanemode",
                                 "org.kde.plasma.battery",
                                 "org.kde.plasma.networkmanagement",
                                 "org.kde.plasma.bluetooth",
                                 "org.kde.plasma.volume",
-                                "org.kde.plasma.brightness"
+                                "org.kde.plasma.brightness",
+                                "org.kde.kscreen"
                             ];
                             if (ccDefaults.includes(listItem.itemId)) {
                                 return "controlcenter";

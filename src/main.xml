@@ -63,7 +63,7 @@
     </entry>
     <entry name="controlCenterItems" type="StringList">
       <label>Items configured to be shown in the Control Center tab.</label>
-      <default>org.cesar.plasmacontrolcenter.darkmode,org.cesar.plasmacontrolcenter.donotdisturb,org.kde.plasma.battery,org.kde.plasma.networkmanagement,org.kde.plasma.bluetooth,org.kde.plasma.volume,org.kde.plasma.brightness,wifi,bluetooth,airdrop,focus,nightlight,darkmode,energy,brightness,volume</default>
+      <default>org.cesar.plasmacontrolcenter.darkmode,org.cesar.plasmacontrolcenter.donotdisturb,org.cesar.plasmacontrolcenter.airplanemode,org.kde.plasma.battery,org.kde.plasma.networkmanagement,org.kde.plasma.bluetooth,org.kde.plasma.volume,org.kde.plasma.brightness,org.kde.kscreen,wifi,bluetooth,airplanemode,airdrop,focus,nightlight,darkmode,energy,kscreen,brightness,volume</default>
     </entry>
   </group>
 

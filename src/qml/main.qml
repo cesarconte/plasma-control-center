@@ -56,6 +56,9 @@ ContainmentItem {
     }
 
     function tileSize(itemId: string): string {
+        if (typeof popup !== "undefined" && popup && popup.currentTab === 0) {
+            return ccTileSize(itemId);
+        }
         const size = tileSizeMap[itemId];
         return tileSizeNames.indexOf(size) >= 0 ? size : "medium";
     }
@@ -116,6 +119,7 @@ ContainmentItem {
         // set active and not the model, as this will cause an assert deep in Qt
         activeInstantiator.active = true;
         hiddenInstantiator.active = true;
+        controlCenterInstantiator.active = true;
     }
 
     Connections {
@@ -156,11 +160,13 @@ ContainmentItem {
             const ccDefaults = [
                 "org.cesar.plasmacontrolcenter.darkmode",
                 "org.cesar.plasmacontrolcenter.donotdisturb",
+                "org.cesar.plasmacontrolcenter.airplanemode",
                 "org.kde.plasma.battery",
                 "org.kde.plasma.networkmanagement",
                 "org.kde.plasma.bluetooth",
                 "org.kde.plasma.volume",
-                "org.kde.plasma.brightness"
+                "org.kde.plasma.brightness",
+                "org.kde.kscreen"
             ];
             if (ccDefaults.includes(itemId) && !hiddenList.includes(itemId)) {
                 return false;
@@ -171,13 +177,43 @@ ContainmentItem {
         Component.onCompleted: sourceModel = Plasmoid.systemTrayModel // avoid unnecessary binding, it causes loops
     }
 
+    KItemModels.KSortFilterProxyModel {
+        id: controlCenterExtraModel
+        filterRoleName: "effectiveStatus"
+        dynamicSortFilter: !systemTrayState.expanded
+        filterRowCallback: (sourceRow, sourceParent) => {
+            const itemId = sourceModel.data(sourceModel.index(sourceRow, 0, sourceParent), Qt.UserRole + 2) || "";
+            const ccList = Array.from(Plasmoid.configuration.controlCenterItems || []);
+            const builtInPluginIds = [
+                "wifi", "bluetooth", "airdrop", "airplanemode", "focus", "nightlight", "darkmode", "energy", "brightness", "volume", "kscreen",
+                "org.cesar.plasmacontrolcenter.darkmode",
+                "org.cesar.plasmacontrolcenter.donotdisturb",
+                "org.cesar.plasmacontrolcenter.airplanemode",
+                "org.kde.plasma.battery",
+                "org.kde.plasma.networkmanagement",
+                "org.kde.plasma.bluetooth",
+                "org.kde.plasma.volume",
+                "org.kde.plasma.brightness",
+                "org.kde.plasma.nightcolorcontrol",
+                "org.kde.kscreen",
+                "org.kde.kdeconnect"
+            ];
+            return ccList.includes(itemId) && !builtInPluginIds.includes(itemId);
+        }
+        Component.onCompleted: sourceModel = Plasmoid.systemTrayModel
+    }
+
+    readonly property alias controlCenterExtraModel: controlCenterExtraModel
+
     Connections {
         target: Plasmoid.configuration
         function onControlCenterItemsChanged() {
             hiddenModel.invalidateFilter();
+            controlCenterExtraModel.invalidateFilter();
         }
         function onHiddenItemsChanged() {
             hiddenModel.invalidateFilter();
+            controlCenterExtraModel.invalidateFilter();
         }
     }
 
@@ -191,6 +227,7 @@ ContainmentItem {
                 root.editMode = false;
                 activeModel.invalidateFilter();
                 hiddenModel.invalidateFilter();
+                controlCenterExtraModel.invalidateFilter();
             }
         }
     }
@@ -201,6 +238,22 @@ ContainmentItem {
         // to not create plasmoiditems too soon
         active: false
         model: hiddenModel
+        delegate: Connections {
+            required property QtObject applet
+            required property int row
+            target: applet
+            function onExpandedChanged(expanded: bool) {
+                if (expanded) {
+                    systemTrayState.setActiveApplet(applet, row)
+                }
+            }
+        }
+    }
+
+    Instantiator {
+        id: controlCenterInstantiator
+        active: false
+        model: controlCenterExtraModel
         delegate: Connections {
             required property QtObject applet
             required property int row

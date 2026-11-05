@@ -10,6 +10,7 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents3
 import org.kde.plasma.core as PlasmaCore
+import org.kde.plasma.networkmanagement as PlasmaNM
 import org.kde.plasma.plasmoid
 import org.kde.plasma.private.volume as PlasmaAudio
 
@@ -17,6 +18,10 @@ PlasmaComponents3.ScrollView {
     id: controlCenterView
 
     property alias layout: ccTasks
+
+    PlasmaNM.Handler {
+        id: nmHandler
+    }
 
     hoverEnabled: true
     background: null
@@ -86,9 +91,9 @@ PlasmaComponents3.ScrollView {
 
             activeFocusOnTab: true
 
-            readonly property var candidateItems: [
-                "wifi", "bluetooth", "airdrop", "focus",
-                "nightlight", "darkmode", "energy",
+            readonly property var builtInItems: [
+                "wifi", "bluetooth", "airplanemode", "airdrop", "focus",
+                "nightlight", "darkmode", "energy", "kscreen",
                 "brightness", "volume"
             ]
 
@@ -105,13 +110,15 @@ PlasmaComponents3.ScrollView {
                 const pluginMap = {
                     "darkmode": "org.cesar.plasmacontrolcenter.darkmode",
                     "focus": "org.cesar.plasmacontrolcenter.donotdisturb",
-                    "airdrop": "org.cesar.plasmacontrolcenter.airplanemode",
+                    "airplanemode": "org.cesar.plasmacontrolcenter.airplanemode",
+                    "airdrop": "org.kde.kdeconnect",
                     "energy": "org.kde.plasma.battery",
                     "volume": "org.kde.plasma.volume",
                     "brightness": "org.kde.plasma.brightness",
                     "wifi": "org.kde.plasma.networkmanagement",
                     "bluetooth": "org.kde.plasma.bluetooth",
-                    "nightlight": "org.kde.plasma.nightcolorcontrol"
+                    "nightlight": "org.kde.plasma.nightcolorcontrol",
+                    "kscreen": "org.kde.kscreen"
                 };
 
                 const pluginId = pluginMap[id];
@@ -121,7 +128,8 @@ PlasmaComponents3.ScrollView {
                     }
                     const modularPlugins = [
                         "org.cesar.plasmacontrolcenter.darkmode",
-                        "org.cesar.plasmacontrolcenter.donotdisturb"
+                        "org.cesar.plasmacontrolcenter.donotdisturb",
+                        "org.cesar.plasmacontrolcenter.airplanemode"
                     ];
                     if (modularPlugins.includes(pluginId)) {
                         if (!extra.includes(pluginId)) return false;
@@ -138,10 +146,26 @@ PlasmaComponents3.ScrollView {
                 return true;
             }
 
-            readonly property var allItems: {
+            readonly property var builtInVisible: {
                 modelTick;
-                return candidateItems.filter(id => isTileVisible(id));
+                return builtInItems.filter(id => isTileVisible(id));
             }
+
+            readonly property var extraVisible: {
+                modelTick;
+                const list = [];
+                if (typeof root !== "undefined" && root.controlCenterExtraModel) {
+                    for (let i = 0; i < root.controlCenterExtraModel.count; ++i) {
+                        const id = root.controlCenterExtraModel.data(root.controlCenterExtraModel.index(i, 0), Qt.UserRole + 2);
+                        if (id && !list.includes(id) && isTileVisible(id)) {
+                            list.push(id);
+                        }
+                    }
+                }
+                return list;
+            }
+
+            readonly property var allItems: builtInVisible.concat(extraVisible)
 
             readonly property var board: computeBoard(allItems, modelTick, Plasmoid.configuration.controlCenterTileOrder, root.ccTileSizeMap)
 
@@ -315,6 +339,11 @@ PlasmaComponents3.ScrollView {
                 function onDisabledStatusNotifiersChanged() { ccTasks.modelTick++; }
             }
 
+            Connections {
+                target: (typeof root !== "undefined") ? root.controlCenterExtraModel : null
+                function onCountChanged() { ccTasks.modelTick++; }
+            }
+
             // Visual placeholder showing the target slot where the dragged tile will land
             Rectangle {
                 id: dropPlaceholder
@@ -417,6 +446,35 @@ PlasmaComponents3.ScrollView {
                             active: popup.backend ? popup.backend.bluetoothEnabled : false
                             onToggled: if (popup.backend) popup.backend.toggleBluetooth()
                             onDetailsClicked: if (popup.backend) popup.backend.openBluetoothSettings()
+                        }
+                    }
+                }
+            }
+
+            Component {
+                id: airplaneModeComponent
+                Loader {
+                    anchors.fill: parent
+                    sourceComponent: (root.ccTileSize("airplanemode") === "small") ? apSmall : apPill
+                    Component {
+                        id: apSmall
+                        CircleButton {
+                            anchors.fill: parent
+                            iconName: (nmHandler && PlasmaNM.Configuration.airplaneModeEnabled) ? "network-flightmode-on" : "network-flightmode-off"
+                            active: nmHandler ? PlasmaNM.Configuration.airplaneModeEnabled : false
+                            toolTipText: (nmHandler && PlasmaNM.Configuration.airplaneModeEnabled) ? i18n("Modo Avión: Activo") : i18n("Modo Avión: Inactivo")
+                            onClicked: if (nmHandler) nmHandler.enableAirplaneMode(!PlasmaNM.Configuration.airplaneModeEnabled)
+                        }
+                    }
+                    Component {
+                        id: apPill
+                        QuickToggleTile {
+                            anchors.fill: parent
+                            iconName: (nmHandler && PlasmaNM.Configuration.airplaneModeEnabled) ? "network-flightmode-on" : "network-flightmode-off"
+                            title: i18n("Modo Avión")
+                            statusText: (nmHandler && PlasmaNM.Configuration.airplaneModeEnabled) ? i18n("Activo") : i18n("Inactivo")
+                            active: nmHandler ? PlasmaNM.Configuration.airplaneModeEnabled : false
+                            onToggled: if (nmHandler) nmHandler.enableAirplaneMode(!PlasmaNM.Configuration.airplaneModeEnabled)
                         }
                     }
                 }
@@ -610,6 +668,35 @@ PlasmaComponents3.ScrollView {
             }
 
             Component {
+                id: kscreenComponent
+                Loader {
+                    anchors.fill: parent
+                    sourceComponent: (root.ccTileSize("kscreen") === "small") ? ksSmall : ksPill
+                    Component {
+                        id: ksSmall
+                        CircleButton {
+                            anchors.fill: parent
+                            iconName: "preferences-desktop-display"
+                            toolTipText: i18n("Pantalla: Disposición y monitores")
+                            active: true
+                            onClicked: if (popup.backend) popup.backend.openDisplaySettings()
+                        }
+                    }
+                    Component {
+                        id: ksPill
+                        QuickToggleTile {
+                            anchors.fill: parent
+                            iconName: "preferences-desktop-display"
+                            title: i18n("Pantalla")
+                            statusText: i18n("Monitores")
+                            active: true
+                            onToggled: if (popup.backend) popup.backend.openDisplaySettings()
+                        }
+                    }
+                }
+            }
+
+            Component {
                 id: brightnessComponent
                 Loader {
                     anchors.fill: parent
@@ -682,10 +769,10 @@ PlasmaComponents3.ScrollView {
                 }
             }
 
-            // Repeater of Control Center Tiles
+            // Repeater of Built-in Control Center Tiles
             Repeater {
-                id: tileRepeater
-                model: ccTasks.allItems
+                id: builtInRepeater
+                model: ccTasks.builtInVisible
 
                 delegate: Item {
                     id: ccTile
@@ -716,11 +803,13 @@ PlasmaComponents3.ScrollView {
                             switch (ccTile.itemId) {
                             case "wifi": return wifiComponent;
                             case "bluetooth": return bluetoothComponent;
+                            case "airplanemode": return airplaneModeComponent;
                             case "airdrop": return airdropComponent;
                             case "focus": return focusComponent;
                             case "nightlight": return nightLightComponent;
                             case "darkmode": return darkModeComponent;
                             case "energy": return energyComponent;
+                            case "kscreen": return kscreenComponent;
                             case "brightness": return brightnessComponent;
                             case "volume": return volumeComponent;
                             default: return null;
@@ -730,6 +819,45 @@ PlasmaComponents3.ScrollView {
 
                     TileEditOverlay {
                         itemId: ccTile.itemId
+                        boardLayout: ccTasks
+                    }
+                }
+            }
+
+            // Repeater of Extra System Tray / Status Notifier Items assigned to Control Center
+            Repeater {
+                id: extraRepeater
+                model: (typeof root !== "undefined") ? root.controlCenterExtraModel : null
+
+                delegate: ItemLoader {
+                    id: extraTile
+                    required property int index
+                    required property var model
+                    readonly property int effectiveStatus: PlasmaCore.Types.PassiveStatus
+
+                    readonly property string itemId: {
+                        if (typeof root === "undefined" || !root.controlCenterExtraModel) return "";
+                        return root.controlCenterExtraModel.data(root.controlCenterExtraModel.index(index, 0), Qt.UserRole + 2) ?? "";
+                    }
+                    readonly property rect tileRect: ccTasks.slotRect(itemId)
+                    readonly property bool dragged: ccTasks.draggedId === itemId
+
+                    x: dragged ? ccTasks.dragX : tileRect.x
+                    y: dragged ? ccTasks.dragY : tileRect.y
+                    width: tileRect.width
+                    height: tileRect.height
+                    z: dragged ? 100 : 1
+                    scale: dragged ? 1.05 : 1
+                    opacity: dragged ? 0.92 : 1
+
+                    Behavior on x { enabled: !extraTile.dragged; NumberAnimation { duration: Kirigami.Units.longDuration; easing.type: Easing.OutCubic } }
+                    Behavior on y { enabled: !extraTile.dragged; NumberAnimation { duration: Kirigami.Units.longDuration; easing.type: Easing.OutCubic } }
+                    Behavior on width { NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic } }
+                    Behavior on height { NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic } }
+                    Behavior on scale { NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic } }
+
+                    TileEditOverlay {
+                        itemId: extraTile.itemId
                         boardLayout: ccTasks
                     }
                 }

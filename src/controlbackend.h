@@ -83,6 +83,7 @@ public Q_SLOTS:
     void openNetworkSettings();
     void openBluetoothSettings();
     void openEnergySettings();
+    void openKdeConnect();
     void lockScreen();
 
     // Actualización de estado

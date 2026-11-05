@@ -19,10 +19,6 @@ PlasmaComponents3.ScrollView {
 
     property alias layout: ccTasks
 
-    PlasmaNM.Handler {
-        id: nmHandler
-    }
-
     hoverEnabled: true
     background: null
     contentWidth: availableWidth
@@ -66,6 +62,10 @@ PlasmaComponents3.ScrollView {
 
         Item {
             id: ccTasks
+
+            PlasmaNM.Handler {
+                id: nmHandler
+            }
 
             readonly property int columns: 4
             readonly property int margin: Kirigami.Units.largeSpacing
@@ -154,15 +154,70 @@ PlasmaComponents3.ScrollView {
             readonly property var extraVisible: {
                 modelTick;
                 const list = [];
-                if (typeof root !== "undefined" && root.controlCenterExtraModel) {
-                    for (let i = 0; i < root.controlCenterExtraModel.count; ++i) {
-                        const id = root.controlCenterExtraModel.data(root.controlCenterExtraModel.index(i, 0), Qt.UserRole + 2);
-                        if (id && !list.includes(id) && isTileVisible(id)) {
-                            list.push(id);
-                        }
+                const ccItems = Array.from(Plasmoid.configuration.controlCenterItems || []);
+                const builtInPluginIds = [
+                    "wifi", "bluetooth", "airdrop", "airplanemode", "focus", "nightlight", "darkmode", "energy", "brightness", "volume", "kscreen",
+                    "org.cesar.plasmacontrolcenter.darkmode",
+                    "org.cesar.plasmacontrolcenter.donotdisturb",
+                    "org.cesar.plasmacontrolcenter.airplanemode",
+                    "org.kde.plasma.battery",
+                    "org.kde.plasma.networkmanagement",
+                    "org.kde.plasma.bluetooth",
+                    "org.kde.plasma.volume",
+                    "org.kde.plasma.brightness",
+                    "org.kde.plasma.nightcolorcontrol",
+                    "org.kde.kscreen",
+                    "org.kde.kdeconnect"
+                ];
+                for (const item of ccItems) {
+                    if (!builtInPluginIds.includes(item) && !list.includes(item) && isTileVisible(item)) {
+                        list.push(item);
                     }
                 }
                 return list;
+            }
+
+            function findTrayModelRow(id: string): int {
+                const model = Plasmoid.systemTrayModel;
+                if (!model) return -1;
+                for (let i = 0; i < model.rowCount(); ++i) {
+                    const idx = model.index(i, 0);
+                    if (model.data(idx, Qt.UserRole + 2) === id) {
+                        return i;
+                    }
+                }
+                return -1;
+            }
+
+            function extraTitle(id: string): string {
+                const r = findTrayModelRow(id);
+                if (r < 0) return id;
+                const idx = Plasmoid.systemTrayModel.index(r, 0);
+                return Plasmoid.systemTrayModel.data(idx, Qt.DisplayRole) || id;
+            }
+
+            function extraIcon(id: string): string {
+                const r = findTrayModelRow(id);
+                if (r < 0) return "application-x-executable";
+                const idx = Plasmoid.systemTrayModel.index(r, 0);
+                return Plasmoid.systemTrayModel.data(idx, Qt.DecorationRole) || "application-x-executable";
+            }
+
+            function extraStatus(id: string): string {
+                const r = findTrayModelRow(id);
+                if (r < 0) return "";
+                const idx = Plasmoid.systemTrayModel.index(r, 0);
+                return Plasmoid.systemTrayModel.data(idx, Qt.ToolTipRole) || "";
+            }
+
+            function activateExtra(id: string): void {
+                const r = findTrayModelRow(id);
+                if (r < 0) return;
+                const idx = Plasmoid.systemTrayModel.index(r, 0);
+                const source = Plasmoid.systemTrayModel.data(idx, Qt.UserRole);
+                if (source) {
+                    Plasmoid.activate(source, Qt.point(0, 0), controlCenterView);
+                }
             }
 
             readonly property var allItems: builtInVisible.concat(extraVisible)
@@ -492,7 +547,7 @@ PlasmaComponents3.ScrollView {
                             iconName: "kdeconnect-symbolic"
                             toolTipText: i18n("AirDrop (KDE Connect)")
                             active: true
-                            onClicked: if (popup.backend) popup.backend.openSystemSettings()
+                            onClicked: if (popup.backend) popup.backend.openKdeConnect()
                         }
                     }
                     Component {
@@ -503,8 +558,8 @@ PlasmaComponents3.ScrollView {
                             title: i18n("AirDrop")
                             statusText: i18n("KDE Connect")
                             active: true
-                            onToggled: if (popup.backend) popup.backend.openSystemSettings()
-                            onDetailsClicked: if (popup.backend) popup.backend.openSystemSettings()
+                            onToggled: if (popup.backend) popup.backend.openKdeConnect()
+                            onDetailsClicked: if (popup.backend) popup.backend.openKdeConnect()
                         }
                     }
                 }
@@ -769,10 +824,45 @@ PlasmaComponents3.ScrollView {
                 }
             }
 
-            // Repeater of Built-in Control Center Tiles
+            Component {
+                id: extraTileComponent
+                Item {
+                    id: extraTileRoot
+                    property string extraItemId: ""
+                    anchors.fill: parent
+
+                    Loader {
+                        anchors.fill: parent
+                        sourceComponent: (root.ccTileSize(extraTileRoot.extraItemId) === "small") ? extraSmall : extraPill
+                        Component {
+                            id: extraSmall
+                            CircleButton {
+                                anchors.fill: parent
+                                iconName: ccTasks.extraIcon(extraTileRoot.extraItemId)
+                                toolTipText: ccTasks.extraTitle(extraTileRoot.extraItemId)
+                                active: true
+                                onClicked: ccTasks.activateExtra(extraTileRoot.extraItemId)
+                            }
+                        }
+                        Component {
+                            id: extraPill
+                            QuickToggleTile {
+                                anchors.fill: parent
+                                iconName: ccTasks.extraIcon(extraTileRoot.extraItemId)
+                                title: ccTasks.extraTitle(extraTileRoot.extraItemId)
+                                statusText: ccTasks.extraStatus(extraTileRoot.extraItemId)
+                                active: true
+                                onToggled: ccTasks.activateExtra(extraTileRoot.extraItemId)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Repeater of Control Center Tiles
             Repeater {
-                id: builtInRepeater
-                model: ccTasks.builtInVisible
+                id: tileRepeater
+                model: ccTasks.allItems
 
                 delegate: Item {
                     id: ccTile
@@ -798,6 +888,7 @@ PlasmaComponents3.ScrollView {
                     Behavior on scale { NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic } }
 
                     Loader {
+                        id: tileLoader
                         anchors.fill: parent
                         sourceComponent: {
                             switch (ccTile.itemId) {
@@ -812,52 +903,18 @@ PlasmaComponents3.ScrollView {
                             case "kscreen": return kscreenComponent;
                             case "brightness": return brightnessComponent;
                             case "volume": return volumeComponent;
-                            default: return null;
+                            default: return extraTileComponent;
+                            }
+                        }
+                        onLoaded: {
+                            if (item && item.hasOwnProperty("extraItemId")) {
+                                item.extraItemId = ccTile.itemId;
                             }
                         }
                     }
 
                     TileEditOverlay {
                         itemId: ccTile.itemId
-                        boardLayout: ccTasks
-                    }
-                }
-            }
-
-            // Repeater of Extra System Tray / Status Notifier Items assigned to Control Center
-            Repeater {
-                id: extraRepeater
-                model: (typeof root !== "undefined") ? root.controlCenterExtraModel : null
-
-                delegate: ItemLoader {
-                    id: extraTile
-                    required property int index
-                    required property var model
-                    readonly property int effectiveStatus: PlasmaCore.Types.PassiveStatus
-
-                    readonly property string itemId: {
-                        if (typeof root === "undefined" || !root.controlCenterExtraModel) return "";
-                        return root.controlCenterExtraModel.data(root.controlCenterExtraModel.index(index, 0), Qt.UserRole + 2) ?? "";
-                    }
-                    readonly property rect tileRect: ccTasks.slotRect(itemId)
-                    readonly property bool dragged: ccTasks.draggedId === itemId
-
-                    x: dragged ? ccTasks.dragX : tileRect.x
-                    y: dragged ? ccTasks.dragY : tileRect.y
-                    width: tileRect.width
-                    height: tileRect.height
-                    z: dragged ? 100 : 1
-                    scale: dragged ? 1.05 : 1
-                    opacity: dragged ? 0.92 : 1
-
-                    Behavior on x { enabled: !extraTile.dragged; NumberAnimation { duration: Kirigami.Units.longDuration; easing.type: Easing.OutCubic } }
-                    Behavior on y { enabled: !extraTile.dragged; NumberAnimation { duration: Kirigami.Units.longDuration; easing.type: Easing.OutCubic } }
-                    Behavior on width { NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic } }
-                    Behavior on height { NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic } }
-                    Behavior on scale { NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic } }
-
-                    TileEditOverlay {
-                        itemId: extraTile.itemId
                         boardLayout: ccTasks
                     }
                 }

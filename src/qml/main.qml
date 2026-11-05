@@ -135,7 +135,34 @@ ContainmentItem {
         dynamicSortFilter: !systemTrayState.expanded
         filterRowCallback: (sourceRow, sourceParent) => {
             let value = sourceModel.data(sourceModel.index(sourceRow, 0, sourceParent), filterRole);
-            return value === PlasmaCore.Types.ActiveStatus;
+            if (value !== PlasmaCore.Types.ActiveStatus) {
+                return false;
+            }
+            const itemId = sourceModel.data(sourceModel.index(sourceRow, 0, sourceParent), Qt.UserRole + 2) || "";
+            const shownList = Array.from(Plasmoid.configuration.shownItems || []);
+            if (shownList.includes(itemId)) {
+                return true;
+            }
+            const ccList = Array.from(Plasmoid.configuration.controlCenterItems || []);
+            if (ccList.includes(itemId)) {
+                return false;
+            }
+            const ccDefaults = [
+                "org.cesar.plasmacontrolcenter.darkmode",
+                "org.cesar.plasmacontrolcenter.donotdisturb",
+                "org.cesar.plasmacontrolcenter.airplanemode",
+                "org.kde.plasma.battery",
+                "org.kde.plasma.networkmanagement",
+                "org.kde.plasma.bluetooth",
+                "org.kde.plasma.volume",
+                "org.kde.plasma.brightness",
+                "org.kde.kscreen",
+                "org.kde.kdeconnect"
+            ];
+            if (ccDefaults.includes(itemId)) {
+                return false;
+            }
+            return true;
         }
         Component.onCompleted: sourceModel = Plasmoid.systemTrayModel // avoid unnecessary binding, it causes loops
     }
@@ -166,7 +193,8 @@ ContainmentItem {
                 "org.kde.plasma.bluetooth",
                 "org.kde.plasma.volume",
                 "org.kde.plasma.brightness",
-                "org.kde.kscreen"
+                "org.kde.kscreen",
+                "org.kde.kdeconnect"
             ];
             if (ccDefaults.includes(itemId) && !hiddenList.includes(itemId)) {
                 return false;
@@ -208,10 +236,17 @@ ContainmentItem {
     Connections {
         target: Plasmoid.configuration
         function onControlCenterItemsChanged() {
+            activeModel.invalidateFilter();
+            hiddenModel.invalidateFilter();
+            controlCenterExtraModel.invalidateFilter();
+        }
+        function onShownItemsChanged() {
+            activeModel.invalidateFilter();
             hiddenModel.invalidateFilter();
             controlCenterExtraModel.invalidateFilter();
         }
         function onHiddenItemsChanged() {
+            activeModel.invalidateFilter();
             hiddenModel.invalidateFilter();
             controlCenterExtraModel.invalidateFilter();
         }

@@ -530,6 +530,11 @@ void ControlBackend::openEnergySettings()
     KProcess::startDetached(QStringLiteral("kcmshell6"), {QStringLiteral("kcm_powerdevilprofilesconfig")});
 }
 
+void ControlBackend::openKdeConnect()
+{
+    KProcess::startDetached(QStringLiteral("kdeconnect-app"));
+}
+
 void ControlBackend::lockScreen()
 {
     QDBusInterface ssIface(QStringLiteral("org.freedesktop.ScreenSaver"),

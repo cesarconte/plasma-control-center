@@ -19,17 +19,17 @@ Rectangle {
     color: {
         const base = Kirigami.Theme.alternateBackgroundColor;
         if (pressed) {
-            return Qt.darker(base, 1.15);
+            return Qt.darker(base, 1.25);
         }
         if (hovered && interactive) {
-            return Qt.lighter(base, 1.08);
+            return Qt.tint(base, Qt.rgba(1, 1, 1, 0.14));
         }
         return base;
     }
 
-    border.width: 1
+    border.width: (hovered && interactive) ? 1.5 : 1
     border.color: (hovered && interactive)
-        ? Qt.alpha(Kirigami.Theme.highlightColor, 0.4)
+        ? Qt.alpha(Kirigami.Theme.highlightColor, 0.75)
         : Qt.alpha(Kirigami.Theme.textColor, 0.08)
 
     Behavior on color {

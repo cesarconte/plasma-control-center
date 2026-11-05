@@ -271,7 +271,9 @@ PlasmaComponents3.ScrollView {
             }
 
             function activateExtra(id: string, visualItem: var, px: real, py: real): void {
+                console.warn("[CC_EXTRA] activateExtra called for id: '" + id + "'");
                 const s = extraService(id);
+                console.warn("[CC_EXTRA] extraService returned: '" + s + "'");
                 if (!s) return;
                 const itemIsMenu = Boolean(extraRoleData(id, "ItemIsMenu", 372));
                 const target = visualItem || controlCenterView;
@@ -279,6 +281,7 @@ PlasmaComponents3.ScrollView {
                 const posY = (py !== undefined && !isNaN(py)) ? py : (target.height / 2);
                 const rawPos = Plasmoid.popupPosition(target, Math.round(posX), Math.round(posY));
                 const pos = Qt.point(Math.round(rawPos.x), Math.round(rawPos.y));
+                console.warn("[CC_EXTRA] itemIsMenu:", itemIsMenu, "calling Plasmoid activate/openContextMenu with service:", s, "pos:", pos, "target:", target);
                 if (itemIsMenu) {
                     Plasmoid.openContextMenu(s, pos, target);
                 } else {
@@ -287,13 +290,16 @@ PlasmaComponents3.ScrollView {
             }
 
             function openExtraMenu(id: string, visualItem: var, px: real, py: real): void {
+                console.warn("[CC_EXTRA] openExtraMenu called for id: '" + id + "'");
                 const s = extraService(id);
+                console.warn("[CC_EXTRA] extraService returned: '" + s + "'");
                 if (!s) return;
                 const target = visualItem || controlCenterView;
                 const posX = (px !== undefined && !isNaN(px)) ? px : (target.width / 2);
                 const posY = (py !== undefined && !isNaN(py)) ? py : (target.height / 2);
                 const rawPos = Plasmoid.popupPosition(target, Math.round(posX), Math.round(posY));
                 const pos = Qt.point(Math.round(rawPos.x), Math.round(rawPos.y));
+                console.warn("[CC_EXTRA] calling Plasmoid.openContextMenu with service:", s, "pos:", pos, "target:", target);
                 Plasmoid.openContextMenu(s, pos, target);
             }
 
@@ -916,6 +922,22 @@ PlasmaComponents3.ScrollView {
                     property string extraItemId: ""
                     anchors.fill: parent
 
+                    readonly property var itemInfo: (extraItemId && typeof Plasmoid.extraItemInfo === "function")
+                        ? Plasmoid.extraItemInfo(extraItemId)
+                        : ({})
+                    readonly property string tileTitle: (itemInfo && itemInfo.title) ? itemInfo.title : ccTasks.extraTitle(extraItemId)
+                    readonly property string tileIcon: (itemInfo && itemInfo.iconName) ? itemInfo.iconName : ccTasks.extraIcon(extraItemId)
+                    readonly property string tileStatus: {
+                        if (itemInfo && itemInfo.toolTipSubTitle && itemInfo.toolTipSubTitle.length > 0) {
+                            return itemInfo.toolTipSubTitle;
+                        }
+                        const s = itemInfo ? itemInfo.status : "";
+                        if (s === "Active" || s === 1 || s === PlasmaCore.Types.ActiveStatus) {
+                            return i18n("Activo");
+                        }
+                        return ccTasks.extraStatus(extraItemId);
+                    }
+
                     Loader {
                         anchors.fill: parent
                         sourceComponent: (root.ccTileSize(extraTileRoot.extraItemId) === "small") ? extraSmall : extraPill
@@ -929,11 +951,17 @@ PlasmaComponents3.ScrollView {
                                 CircleButton {
                                     id: circleBtn
                                     anchors.fill: parent
-                                    iconName: ccTasks.extraIcon(extraTileRoot.extraItemId)
-                                    toolTipText: ccTasks.extraTitle(extraTileRoot.extraItemId)
+                                    iconName: extraTileRoot.tileIcon
+                                    toolTipText: extraTileRoot.tileTitle
                                     active: true
-                                    onClicked: ccTasks.activateExtra(extraTileRoot.extraItemId, circleBtn, circleBtn.width / 2, circleBtn.height / 2)
-                                    onRightClicked: mouse => ccTasks.openExtraMenu(extraTileRoot.extraItemId, circleBtn, mouse.x, mouse.y)
+                                    onClicked: {
+                                        const pos = Plasmoid.popupPosition(circleBtn, Math.round(circleBtn.width / 2), Math.round(circleBtn.height / 2));
+                                        Plasmoid.activateItemId(extraTileRoot.extraItemId, pos, circleBtn);
+                                    }
+                                    onRightClicked: mouse => {
+                                        const pos = Plasmoid.popupPosition(circleBtn, Math.round(mouse.x), Math.round(mouse.y));
+                                        Plasmoid.openContextMenuForItemId(extraTileRoot.extraItemId, pos, circleBtn);
+                                    }
                                 }
                             }
                         }
@@ -975,7 +1003,7 @@ PlasmaComponents3.ScrollView {
                                             anchors.centerIn: parent
                                             implicitWidth: Kirigami.Units.iconSizes.smallMedium
                                             implicitHeight: implicitWidth
-                                            source: ccTasks.extraIcon(extraTileRoot.extraItemId)
+                                            source: extraTileRoot.tileIcon
                                             color: Kirigami.Theme.highlightedTextColor
                                         }
                                     }
@@ -989,7 +1017,7 @@ PlasmaComponents3.ScrollView {
 
                                         PlasmaComponents3.Label {
                                             Layout.fillWidth: true
-                                            text: ccTasks.extraTitle(extraTileRoot.extraItemId)
+                                            text: extraTileRoot.tileTitle
                                             font.weight: Font.DemiBold
                                             font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
                                             elide: Text.ElideRight
@@ -997,7 +1025,7 @@ PlasmaComponents3.ScrollView {
 
                                         PlasmaComponents3.Label {
                                             Layout.fillWidth: true
-                                            text: ccTasks.extraStatus(extraTileRoot.extraItemId)
+                                            text: extraTileRoot.tileStatus
                                             font.pointSize: Kirigami.Theme.smallFont.pointSize * 0.9
                                             opacity: 0.75
                                             elide: Text.ElideRight
@@ -1012,7 +1040,10 @@ PlasmaComponents3.ScrollView {
                                         display: PlasmaComponents3.AbstractButton.IconOnly
                                         implicitWidth: Kirigami.Units.iconSizes.small
                                         implicitHeight: implicitWidth
-                                        onClicked: ccTasks.openExtraMenu(extraTileRoot.extraItemId, chevronBtn, chevronBtn.width / 2, chevronBtn.height / 2)
+                                        onClicked: {
+                                            const pos = Plasmoid.popupPosition(chevronBtn, Math.round(chevronBtn.width / 2), Math.round(chevronBtn.height / 2));
+                                            Plasmoid.openContextMenuForItemId(extraTileRoot.extraItemId, pos, chevronBtn);
+                                        }
                                     }
                                 }
 
@@ -1025,12 +1056,22 @@ PlasmaComponents3.ScrollView {
                                     cursorShape: Qt.PointingHandCursor
 
                                     onClicked: mouse => {
+                                        const pos = Plasmoid.popupPosition(pillItem, Math.round(mouse.x), Math.round(mouse.y));
                                         if (mouse.button === Qt.RightButton) {
-                                            ccTasks.openExtraMenu(extraTileRoot.extraItemId, pillItem, mouse.x, mouse.y);
+                                            Plasmoid.openContextMenuForItemId(extraTileRoot.extraItemId, pos, pillItem);
                                         } else {
-                                            ccTasks.activateExtra(extraTileRoot.extraItemId, pillItem, mouse.x, mouse.y);
+                                            Plasmoid.activateItemId(extraTileRoot.extraItemId, pos, pillItem);
                                         }
                                     }
+                                }
+
+                                PlasmaComponents3.ToolTip {
+                                    text: {
+                                        const t = extraTileRoot.tileTitle;
+                                        const s = extraTileRoot.tileStatus;
+                                        return (s && s.length > 0) ? `${t}: ${s}` : t;
+                                    }
+                                    visible: (mainMouse.containsMouse || chevronBtn.hovered) && text.length > 0
                                 }
                             }
                         }

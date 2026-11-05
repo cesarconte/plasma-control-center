@@ -82,6 +82,11 @@ public:
 
     Q_INVOKABLE void scroll(const QString &service, int delta, const QString &direction);
 
+    Q_INVOKABLE QString serviceForItemId(const QString &itemId) const;
+    Q_INVOKABLE void activateItemId(const QString &itemId, QPoint pos, QQuickItem *visualItem);
+    Q_INVOKABLE void openContextMenuForItemId(const QString &itemId, QPoint pos, QQuickItem *visualItem);
+    Q_INVOKABLE QVariantMap extraItemInfo(const QString &itemId) const;
+
 private Q_SLOTS:
     // synchronizes with configuration and deletes not allowed applets
     void onEnabledAppletsChanged();

@@ -10,13 +10,14 @@ pragma ComponentBehavior: Bound
 import QtQuick
 
 import org.kde.kirigami as Kirigami
+import CachyOS.UI
 
 SequentialAnimation {
     id: pulseAnimation
     objectName: "pulseAnimation"
 
     property Item targetItem
-    readonly property int duration: Kirigami.Units.veryLongDuration * 5
+    readonly property int duration: CachyTheme.animNormal * 5
 
     loops: Animation.Infinite
     alwaysRunToEnd: true

@@ -7,6 +7,7 @@
 import QtQuick
 
 import org.kde.kirigami as Kirigami
+import CachyOS.UI
 import org.kde.ksvg as KSvg
 import org.kde.plasma.core as PlasmaCore
 
@@ -136,7 +137,7 @@ KSvg.FrameSvgItem {
 
     Behavior on opacity {
         NumberAnimation {
-            duration: Kirigami.Units.shortDuration
+            duration: CachyTheme.animFast
             easing.type: systemTrayState.expanded ? Easing.OutCubic : Easing.InCubic
         }
     }
@@ -144,7 +145,7 @@ KSvg.FrameSvgItem {
         id: xAnim
         enabled: currentItemHighLight.animationEnabled
         NumberAnimation {
-            duration: Kirigami.Units.longDuration
+            duration: CachyTheme.animNormal
             easing.type: Easing.InOutCubic
         }
     }
@@ -152,7 +153,7 @@ KSvg.FrameSvgItem {
         id: yAnim
         enabled: currentItemHighLight.animationEnabled
         NumberAnimation {
-            duration: Kirigami.Units.longDuration
+            duration: CachyTheme.animNormal
             easing.type: Easing.InOutCubic
         }
     }
@@ -160,7 +161,7 @@ KSvg.FrameSvgItem {
         id: widthAnim
         enabled: currentItemHighLight.animationEnabled
         NumberAnimation {
-            duration: Kirigami.Units.longDuration
+            duration: CachyTheme.animNormal
             easing.type: Easing.InOutCubic
         }
     }
@@ -168,7 +169,7 @@ KSvg.FrameSvgItem {
         id: heightAnim
         enabled: currentItemHighLight.animationEnabled
         NumberAnimation {
-            duration: Kirigami.Units.longDuration
+            duration: CachyTheme.animNormal
             easing.type: Easing.InOutCubic
         }
     }

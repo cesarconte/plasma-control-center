@@ -1,0 +1,26 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Plasma Control Center contributors"
+            }
+        ],
+        "Category": "System Services",
+        "Description": "Quickly open KDE System Settings",
+        "Description[es]": "Abrir rápidamente las Preferencias del sistema de KDE",
+        "EnabledByDefault": true,
+        "Icon": "systemsettings",
+        "Id": "org.cesar.plasmacontrolcenter.systemsettings",
+        "License": "GPL-2.0+",
+        "Name": "System Settings",
+        "Name[es]": "Preferencias del sistema",
+        "Version": "0.1.0",
+        "Website": "https://github.com/cesarconte/plasma-control-center"
+    },
+    "X-Plasma-API": "declarativeappletscript",
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "X-Plasma-MainScript": "ui/main.qml",
+    "X-Plasma-NotificationArea": "true",
+    "X-Plasma-NotificationAreaCategory": "SystemServices"
+}

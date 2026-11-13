@@ -12,6 +12,7 @@ import QtQuick.Layouts
 
 import org.kde.draganddrop as DnD
 import org.kde.kirigami as Kirigami
+import CachyOS.UI
 import org.kde.kitemmodels as KItemModels
 import org.kde.ksvg as KSvg
 import org.kde.plasma.core as PlasmaCore
@@ -23,8 +24,8 @@ ContainmentItem {
     readonly property bool vertical: Plasmoid.formFactor === PlasmaCore.Types.Vertical
     readonly property bool reverseLayout: Plasmoid.configuration.reverseIconOrder
 
-    Layout.minimumWidth: vertical ? Kirigami.Units.iconSizes.small : mainLayout.implicitWidth + Kirigami.Units.smallSpacing
-    Layout.minimumHeight: vertical ? mainLayout.implicitHeight + Kirigami.Units.smallSpacing : Kirigami.Units.iconSizes.small
+    Layout.minimumWidth: vertical ? Kirigami.Units.iconSizes.small : mainLayout.implicitWidth + CachyTheme.spacingSmall
+    Layout.minimumHeight: vertical ? mainLayout.implicitHeight + CachyTheme.spacingSmall : Kirigami.Units.iconSizes.small
 
     LayoutMirroring.enabled: !vertical && ((Application.layoutDirection === Qt.RightToLeft) !== reverseLayout)
     LayoutMirroring.childrenInherit: true
@@ -56,6 +57,9 @@ ContainmentItem {
     }
 
     function tileSize(itemId: string): string {
+        if (typeof popup !== "undefined" && popup && popup.currentTab === 0) {
+            return ccTileSize(itemId);
+        }
         const size = tileSizeMap[itemId];
         return tileSizeNames.indexOf(size) >= 0 ? size : "medium";
     }
@@ -66,6 +70,38 @@ ContainmentItem {
             list.push(itemId + "=" + size);
         }
         Plasmoid.configuration.tileSizes = list;
+    }
+
+    // itemId -> size name for Control Center tiles
+    readonly property var ccTileSizeMap: {
+        const map = {};
+        for (const entry of Array.from(Plasmoid.configuration.controlCenterTileSizes || [])) {
+            const separator = entry.lastIndexOf("=");
+            if (separator > 0) {
+                map[entry.slice(0, separator)] = entry.slice(separator + 1);
+            }
+        }
+        return map;
+    }
+
+    function ccTileSize(itemId: string): string {
+        const size = ccTileSizeMap[itemId];
+        if (size && tileSizeNames.indexOf(size) >= 0) {
+            return size;
+        }
+        if (itemId === "brightness" || itemId === "volume") {
+            return "wide";
+        }
+        return "medium";
+    }
+
+    function setCcTileSize(itemId: string, size: string): void {
+        const list = Array.from(Plasmoid.configuration.controlCenterTileSizes || []).filter(entry => !entry.startsWith(itemId + "="));
+        const def = (itemId === "brightness" || itemId === "volume") ? "wide" : "medium";
+        if (size !== def) {
+            list.push(itemId + "=" + size);
+        }
+        Plasmoid.configuration.controlCenterTileSizes = list;
     }
 
     // Columns and rows (of the 4 column board) that a tile of the given size spans
@@ -84,6 +120,7 @@ ContainmentItem {
         // set active and not the model, as this will cause an assert deep in Qt
         activeInstantiator.active = true;
         hiddenInstantiator.active = true;
+        controlCenterInstantiator.active = true;
     }
 
     Connections {
@@ -99,7 +136,34 @@ ContainmentItem {
         dynamicSortFilter: !systemTrayState.expanded
         filterRowCallback: (sourceRow, sourceParent) => {
             let value = sourceModel.data(sourceModel.index(sourceRow, 0, sourceParent), filterRole);
-            return value === PlasmaCore.Types.ActiveStatus;
+            if (value !== PlasmaCore.Types.ActiveStatus) {
+                return false;
+            }
+            const itemId = sourceModel.data(sourceModel.index(sourceRow, 0, sourceParent), Qt.UserRole + 2) || "";
+            const shownList = Array.from(Plasmoid.configuration.shownItems || []);
+            if (shownList.includes(itemId)) {
+                return true;
+            }
+            const ccList = Array.from(Plasmoid.configuration.controlCenterItems || []);
+            if (ccList.includes(itemId)) {
+                return false;
+            }
+            const ccDefaults = [
+                "org.cesar.plasmacontrolcenter.darkmode",
+                "org.cesar.plasmacontrolcenter.donotdisturb",
+                "org.cesar.plasmacontrolcenter.airplanemode",
+                "org.kde.plasma.battery",
+                "org.kde.plasma.networkmanagement",
+                "org.kde.plasma.bluetooth",
+                "org.kde.plasma.volume",
+                "org.kde.plasma.brightness",
+                "org.kde.kscreen",
+                "org.kde.kdeconnect"
+            ];
+            if (ccDefaults.includes(itemId)) {
+                return false;
+            }
+            return true;
         }
         Component.onCompleted: sourceModel = Plasmoid.systemTrayModel // avoid unnecessary binding, it causes loops
     }
@@ -110,9 +174,83 @@ ContainmentItem {
         dynamicSortFilter: !systemTrayState.expanded
         filterRowCallback: (sourceRow, sourceParent) => {
             let value = sourceModel.data(sourceModel.index(sourceRow, 0, sourceParent), filterRole);
-            return value === PlasmaCore.Types.PassiveStatus
+            if (value !== PlasmaCore.Types.PassiveStatus) {
+                return false;
+            }
+            const itemId = sourceModel.data(sourceModel.index(sourceRow, 0, sourceParent), Qt.UserRole + 2) || "";
+            const ccList = Array.from(Plasmoid.configuration.controlCenterItems || []);
+            const hiddenList = Array.from(Plasmoid.configuration.hiddenItems || []);
+
+            if (ccList.includes(itemId)) {
+                return false;
+            }
+
+            const ccDefaults = [
+                "org.cesar.plasmacontrolcenter.darkmode",
+                "org.cesar.plasmacontrolcenter.donotdisturb",
+                "org.cesar.plasmacontrolcenter.airplanemode",
+                "org.kde.plasma.battery",
+                "org.kde.plasma.networkmanagement",
+                "org.kde.plasma.bluetooth",
+                "org.kde.plasma.volume",
+                "org.kde.plasma.brightness",
+                "org.kde.kscreen",
+                "org.kde.kdeconnect"
+            ];
+            if (ccDefaults.includes(itemId) && !hiddenList.includes(itemId)) {
+                return false;
+            }
+
+            return true;
         }
         Component.onCompleted: sourceModel = Plasmoid.systemTrayModel // avoid unnecessary binding, it causes loops
+    }
+
+    KItemModels.KSortFilterProxyModel {
+        id: controlCenterExtraModel
+        filterRoleName: "effectiveStatus"
+        dynamicSortFilter: !systemTrayState.expanded
+        filterRowCallback: (sourceRow, sourceParent) => {
+            const itemId = sourceModel.data(sourceModel.index(sourceRow, 0, sourceParent), Qt.UserRole + 2) || "";
+            const ccList = Array.from(Plasmoid.configuration.controlCenterItems || []);
+            const builtInPluginIds = [
+                "wifi", "bluetooth", "airdrop", "airplanemode", "focus", "nightlight", "darkmode", "energy", "brightness", "volume", "kscreen",
+                "org.cesar.plasmacontrolcenter.darkmode",
+                "org.cesar.plasmacontrolcenter.donotdisturb",
+                "org.cesar.plasmacontrolcenter.airplanemode",
+                "org.kde.plasma.battery",
+                "org.kde.plasma.networkmanagement",
+                "org.kde.plasma.bluetooth",
+                "org.kde.plasma.volume",
+                "org.kde.plasma.brightness",
+                "org.kde.plasma.nightcolorcontrol",
+                "org.kde.kscreen",
+                "org.kde.kdeconnect"
+            ];
+            return ccList.includes(itemId) && !builtInPluginIds.includes(itemId);
+        }
+        Component.onCompleted: sourceModel = Plasmoid.systemTrayModel
+    }
+
+    readonly property alias controlCenterExtraModel: controlCenterExtraModel
+
+    Connections {
+        target: Plasmoid.configuration
+        function onControlCenterItemsChanged() {
+            activeModel.invalidateFilter();
+            hiddenModel.invalidateFilter();
+            controlCenterExtraModel.invalidateFilter();
+        }
+        function onShownItemsChanged() {
+            activeModel.invalidateFilter();
+            hiddenModel.invalidateFilter();
+            controlCenterExtraModel.invalidateFilter();
+        }
+        function onHiddenItemsChanged() {
+            activeModel.invalidateFilter();
+            hiddenModel.invalidateFilter();
+            controlCenterExtraModel.invalidateFilter();
+        }
     }
 
     // Re-evaluate filters when the popup closes to apply any status changes
@@ -120,10 +258,16 @@ ContainmentItem {
     Connections {
         target: systemTrayState
         function onExpandedChanged() {
-            if (!systemTrayState.expanded) {
+            dialog.visible = systemTrayState.expanded;
+            if (systemTrayState.expanded) {
+                if (Plasmoid.backend) {
+                    Plasmoid.backend.refreshAll();
+                }
+            } else {
                 root.editMode = false;
                 activeModel.invalidateFilter();
                 hiddenModel.invalidateFilter();
+                controlCenterExtraModel.invalidateFilter();
             }
         }
     }
@@ -134,6 +278,22 @@ ContainmentItem {
         // to not create plasmoiditems too soon
         active: false
         model: hiddenModel
+        delegate: Connections {
+            required property QtObject applet
+            required property int row
+            target: applet
+            function onExpandedChanged(expanded: bool) {
+                if (expanded) {
+                    systemTrayState.setActiveApplet(applet, row)
+                }
+            }
+        }
+    }
+
+    Instantiator {
+        id: controlCenterInstantiator
+        active: false
+        model: controlCenterExtraModel
         delegate: Connections {
             required property QtObject applet
             required property int row
@@ -251,10 +411,10 @@ ContainmentItem {
 
                 readonly property int gridThickness: root.vertical ? root.width : root.height
                 // Should change to 2 rows/columns on a 56px panel (in standard DPI)
-                readonly property int rowsOrColumns: autoSize ? 1 : Math.max(1, Math.min(count, Math.floor(gridThickness / (smallIconSize + Kirigami.Units.smallSpacing))))
+                readonly property int rowsOrColumns: autoSize ? 1 : Math.max(1, Math.min(count, Math.floor(gridThickness / (smallIconSize + CachyTheme.spacingSmall))))
 
                 // Add margins only if the panel is larger than a small icon (to avoid large gaps between tiny icons)
-                readonly property int cellSpacing: Kirigami.Units.smallSpacing * Plasmoid.configuration.iconSpacing
+                readonly property int cellSpacing: CachyTheme.spacingSmall * Plasmoid.configuration.iconSpacing
                 readonly property int smallSizeCellLength: gridThickness < smallIconSize ? smallIconSize : smallIconSize + cellSpacing
 
                 cellHeight: {
@@ -319,7 +479,7 @@ ContainmentItem {
                 Layout.fillHeight: !vertical
                 Layout.alignment: vertical ? Qt.AlignVCenter : Qt.AlignHCenter
                 iconSize: tasksGrid.itemSize
-                visible: root.hiddenLayout.itemCount > 0
+                visible: true
             }
         }
 
@@ -344,14 +504,14 @@ ContainmentItem {
                 default:
                     return Qt.TopEdge
             }
-            margin: (Plasmoid.containmentDisplayHints & PlasmaCore.Types.ContainmentPrefersFloatingApplets) ? Kirigami.Units.largeSpacing : 0
+            margin: (Plasmoid.containmentDisplayHints & PlasmaCore.Types.ContainmentPrefersFloatingApplets) ? CachyTheme.spacingLarge : 0
 
             Behavior on margin {
                 NumberAnimation {
                     // Since the panel animation won't be perfectly in sync,
                     // using a duration larger than the panel animation results
                     // in a better-looking animation.
-                    duration: Kirigami.Units.veryLongDuration
+                    duration: CachyTheme.animNormal
                     easing.type: Easing.OutCubic
                 }
             }
@@ -366,6 +526,8 @@ ContainmentItem {
             hideOnWindowDeactivate: !Plasmoid.configuration.pin
             visible: systemTrayState.expanded
             appletInterface: root
+            width: expandedRepresentation.implicitWidth
+            height: expandedRepresentation.implicitHeight
 
             backgroundHints: (Plasmoid.containmentDisplayHints & PlasmaCore.Types.ContainmentPrefersOpaqueBackground) ? PlasmaCore.AppletPopup.SolidBackground : PlasmaCore.AppletPopup.StandardBackground
 

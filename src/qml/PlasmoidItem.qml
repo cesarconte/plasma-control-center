@@ -10,6 +10,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 
 import org.kde.kirigami as Kirigami
+import CachyOS.UI
 
 import org.kde.plasma.components as PlasmaComponents3
 import org.kde.plasma.plasmoid
@@ -181,7 +182,7 @@ AbstractItem {
             top: parent.top
             bottom: parent.bottom
             left: parent.left
-            leftMargin: plasmoidContainer.inHiddenLayout ? Math.round(Kirigami.Units.smallSpacing / 2) : 0
+            leftMargin: plasmoidContainer.inHiddenLayout ? Math.round(CachyTheme.spacingSmall / 2) : 0
             right: plasmoidContainer.inHiddenLayout ? undefined : parent.right
         }
         z: 999

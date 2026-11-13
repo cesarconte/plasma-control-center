@@ -53,6 +53,18 @@
       <label>User-defined order of the tiles in the popup, as a list of unique item identifiers. Entries not listed are appended in their default order.</label>
       <default></default>
     </entry>
+    <entry name="controlCenterTileSizes" type="StringList">
+      <label>Size of each Control Center tile, as "itemId=size" pairs where size is one of small, medium, large or wide.</label>
+      <default></default>
+    </entry>
+    <entry name="controlCenterTileOrder" type="StringList">
+      <label>User-defined order of the tiles in the Control Center tab, as a list of item identifiers.</label>
+      <default></default>
+    </entry>
+    <entry name="controlCenterItems" type="StringList">
+      <label>Items configured to be shown in the Control Center tab.</label>
+      <default>org.cesar.plasmacontrolcenter.darkmode,org.cesar.plasmacontrolcenter.donotdisturb,org.cesar.plasmacontrolcenter.airplanemode,org.kde.plasma.battery,org.kde.plasma.networkmanagement,org.kde.plasma.bluetooth,org.kde.plasma.volume,org.kde.plasma.brightness,org.kde.kscreen,wifi,bluetooth,airplanemode,airdrop,focus,nightlight,darkmode,energy,kscreen,brightness,volume</default>
+    </entry>
   </group>
 
 </kcfg>

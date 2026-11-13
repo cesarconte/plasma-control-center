@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: plasma-control-center\n"
 "Report-Msgid-Bugs-To: https://github.com/cesarconte/plasma-control-center/"
 "issues\n"
-"POT-Creation-Date: 2026-10-23 09:44+0200\n"
+"POT-Creation-Date: 2026-10-23 18:07+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,6 +17,146 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+
+#: applets/airplanemode/contents/ui/main.qml
+msgid "Airplane Mode"
+msgstr ""
+
+#: applets/airplanemode/contents/ui/main.qml
+msgctxt "@info:status Airplane mode status"
+msgid "On"
+msgstr ""
+
+#: applets/airplanemode/contents/ui/main.qml
+msgctxt "@info:status Airplane mode status"
+msgid "Off"
+msgstr ""
+
+#: applets/airplanemode/contents/ui/main.qml
+msgctxt "@action:inmenu"
+msgid "Configure Network Connections…"
+msgstr ""
+
+#: applets/darkmode/contents/ui/main.qml
+msgid "Dark Mode"
+msgstr ""
+
+#: applets/darkmode/contents/ui/main.qml
+msgctxt "@info:status Dark mode status"
+msgid "Automatic (Dark)"
+msgstr ""
+
+#: applets/darkmode/contents/ui/main.qml
+msgctxt "@info:status Dark mode status"
+msgid "Automatic (Light)"
+msgstr ""
+
+#: applets/darkmode/contents/ui/main.qml
+msgctxt "@info:status Dark mode status"
+msgid "On"
+msgstr ""
+
+#: applets/darkmode/contents/ui/main.qml
+msgctxt "@info:status Dark mode status"
+msgid "Off"
+msgstr ""
+
+#: applets/darkmode/contents/ui/main.qml
+msgctxt "@action:inmenu"
+msgid "Light"
+msgstr ""
+
+#: applets/darkmode/contents/ui/main.qml
+msgctxt "@action:inmenu"
+msgid "Dark"
+msgstr ""
+
+#: applets/darkmode/contents/ui/main.qml
+msgctxt "@action:inmenu"
+msgid "Automatic (Time of Day)"
+msgstr ""
+
+#: applets/darkmode/contents/ui/main.qml
+msgctxt "@action:inmenu"
+msgid "Configure Global Theme…"
+msgstr ""
+
+#: applets/donotdisturb/contents/ui/main.qml
+msgid "Do Not Disturb"
+msgstr ""
+
+#: applets/donotdisturb/contents/ui/main.qml
+msgctxt "@info:status Do Not Disturb status"
+msgid "On"
+msgstr ""
+
+#: applets/donotdisturb/contents/ui/main.qml
+msgctxt "@info:status Do Not Disturb status"
+msgid "Off"
+msgstr ""
+
+#: applets/donotdisturb/contents/ui/main.qml
+msgctxt "@action:inmenu"
+msgid "For 1 hour"
+msgstr ""
+
+#: applets/donotdisturb/contents/ui/main.qml
+msgctxt "@action:inmenu"
+msgid "For 4 hours"
+msgstr ""
+
+#: applets/donotdisturb/contents/ui/main.qml
+msgctxt "@action:inmenu"
+msgid "Until manually disabled"
+msgstr ""
+
+#: applets/donotdisturb/contents/ui/main.qml
+msgctxt "@action:inmenu"
+msgid "Configure Notifications…"
+msgstr ""
+
+#: applets/screenshot/contents/ui/main.qml
+msgid "Screenshot"
+msgstr ""
+
+#: applets/screenshot/contents/ui/main.qml
+msgctxt "@info:status Screenshot tile subtitle"
+msgid "Capture screen"
+msgstr ""
+
+#: applets/screenshot/contents/ui/main.qml
+msgctxt "@action:inmenu"
+msgid "Capture Rectangular Region"
+msgstr ""
+
+#: applets/screenshot/contents/ui/main.qml
+msgctxt "@action:inmenu"
+msgid "Capture Entire Desktop"
+msgstr ""
+
+#: applets/screenshot/contents/ui/main.qml
+msgctxt "@action:inmenu"
+msgid "Capture Active Window"
+msgstr ""
+
+#: applets/screenshot/contents/ui/main.qml
+msgctxt "@action:inmenu"
+msgid "Record Screen"
+msgstr ""
+
+#: applets/screenshot/contents/ui/main.qml
+msgctxt "@action:inmenu"
+msgid "Open Spectacle"
+msgstr ""
+
+#: applets/systemsettings/contents/ui/main.qml
+msgid "System Settings"
+msgstr ""
+
+#: applets/systemsettings/contents/ui/main.qml
+msgctxt "@info:status System Settings tile subtitle"
+msgid "Configure system"
+msgstr ""
 
 #: src/qml/AbstractItem.qml
 msgctxt "@action:button Change the size of this tile"
@@ -41,6 +181,26 @@ msgstr ""
 #: src/qml/AbstractItem.qml
 msgctxt "@item:inmenu Tile size, full width"
 msgid "Wide"
+msgstr ""
+
+#: src/qml/AbstractItem.qml
+msgctxt "@item:inmenu Move tile one position earlier"
+msgid "Move Earlier"
+msgstr ""
+
+#: src/qml/AbstractItem.qml
+msgctxt "@item:inmenu Move tile one position later"
+msgid "Move Later"
+msgstr ""
+
+#: src/qml/AbstractItem.qml
+msgctxt "@item:inmenu Move tile to the first position"
+msgid "Move to Start"
+msgstr ""
+
+#: src/qml/AbstractItem.qml
+msgctxt "@item:inmenu Move tile to the last position"
+msgid "Move to End"
 msgstr ""
 
 #: src/qml/BackgroundAppItem.qml

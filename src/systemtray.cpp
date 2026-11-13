@@ -8,6 +8,8 @@
 
 #include "debug.h"
 #include "systemtray.h"
+#include "controlbackend.h"
+#include <QQmlEngine>
 
 #include "plasmoidregistry.h"
 #include "sortedsystemtraymodel.h"
@@ -41,6 +43,7 @@ using namespace Qt::StringLiterals;
 
 static void showSystemTrayMenuWayland(QMenu *menu, QQuickItem *trayItem, Plasma::Types::Location location)
 {
+    qWarning() << "showSystemTrayMenuWayland called for menu:" << menu << "trayItem:" << trayItem << "location:" << location;
     QWindow *trayWindow = trayItem->window();
     if (!trayWindow) {
         qCWarning(SYSTEM_TRAY) << menu << "has no parent window, this should never happen";
@@ -111,6 +114,12 @@ SystemTray::SystemTray(QObject *parent, const KPluginMetaData &data, const QVari
 {
     setHasConfigurationInterface(true);
     setContainmentDisplayHints(Plasma::Types::ContainmentDrawsPlasmoidHeading | Plasma::Types::ContainmentForcesSquarePlasmoids);
+
+    static bool backendRegistered = false;
+    if (!backendRegistered) {
+        qmlRegisterType<ControlBackend>("org.cesar.plasmacontrolcenter", 1, 0, "ControlBackend");
+        backendRegistered = true;
+    }
 }
 
 SystemTray::~SystemTray()
@@ -411,6 +420,14 @@ QAbstractItemModel *SystemTray::configSystemTrayModel()
     return m_configSystemTrayModel;
 }
 
+ControlBackend *SystemTray::backend()
+{
+    if (!m_backend) {
+        m_backend = new ControlBackend(this);
+    }
+    return m_backend;
+}
+
 void SystemTray::onEnabledAppletsChanged()
 {
     // remove all that are not allowed anymore
@@ -502,6 +519,7 @@ void SystemTray::stackItemAfter(QQuickItem *newItem, QQuickItem *afterItem)
 
 void SystemTray::activate(const QString &service, QPoint pos, QQuickItem *statusNotifierIcon)
 {
+    qWarning() << "SystemTray::activate called for service:" << service << "pos:" << pos << "statusNotifierIcon:" << statusNotifierIcon;
     const auto source = StatusNotifierItemHost::self()->itemForService(service);
 
     if (!source) {
@@ -514,6 +532,7 @@ void SystemTray::activate(const QString &service, QPoint pos, QQuickItem *status
         &StatusNotifierItemSource::activateResult,
         this,
         [this, service, pos, statusNotifierIcon](bool res) {
+            qWarning() << "activateResult received:" << res;
             if (!res) {
                 // On error try to invoke the context menu.
                 // Workaround primarily for apps using libappindicator.
@@ -526,6 +545,7 @@ void SystemTray::activate(const QString &service, QPoint pos, QQuickItem *status
 
     auto tokenFuture = KWaylandExtras::xdgActivationToken(window, {});
     tokenFuture.then(source, [source, service, pos](const QString &token) {
+        qWarning() << "activate tokenFuture resolved, token:" << token << "calling source->activate";
         source->provideXdgActivationToken(token);
         source->activate(pos.x(), pos.y());
     });
@@ -551,6 +571,7 @@ void SystemTray::secondaryActivate(const QString &service, QPoint pos)
 
 void SystemTray::openContextMenu(const QString &service, QPoint pos, QQuickItem *statusNotifierIcon)
 {
+    qWarning() << "SystemTray::openContextMenu called for service:" << service << "pos:" << pos << "statusNotifierIcon:" << statusNotifierIcon;
     const auto source = StatusNotifierItemHost::self()->itemForService(service);
 
     if (!source) {
@@ -563,9 +584,12 @@ void SystemTray::openContextMenu(const QString &service, QPoint pos, QQuickItem 
         &StatusNotifierItemSource::contextMenuReady,
         this,
         [this, statusNotifierIcon = QPointer<QQuickItem>{statusNotifierIcon}](QMenu *menu) {
+            qWarning() << "SystemTray::openContextMenu contextMenuReady received, menu:" << menu << "statusNotifierIcon:" << statusNotifierIcon;
             if (statusNotifierIcon && menu && !menu->isEmpty()) {
                 KAcceleratorManager::manage(menu);
                 showSystemTrayMenuWayland(menu, statusNotifierIcon, location());
+            } else {
+                qWarning() << "contextMenuReady not showing because: statusNotifierIcon=" << statusNotifierIcon << "menu=" << menu << "empty=" << (menu ? menu->isEmpty() : true);
             }
         },
         Qt::SingleShotConnection);
@@ -574,6 +598,7 @@ void SystemTray::openContextMenu(const QString &service, QPoint pos, QQuickItem 
 
     auto tokenFuture = KWaylandExtras::xdgActivationToken(window, {});
     tokenFuture.then(source, [source, pos](const QString &token) {
+        qWarning() << "openContextMenu tokenFuture resolved, token:" << token << "calling source->contextMenu";
         source->provideXdgActivationToken(token);
         source->contextMenu(pos.x(), pos.y());
     });
@@ -589,6 +614,89 @@ void SystemTray::scroll(const QString &service, int delta, const QString &direct
     }
 
     source->scroll(delta, direction);
+}
+
+static QString extractItemIdHelper(StatusNotifierItemSource *sniData)
+{
+    const QString itemId = sniData->id();
+    if (itemId.startsWith(QLatin1String("dropbox-client-"))) {
+        return QLatin1String("dropbox-client-PID");
+    }
+    if (itemId.startsWith(QLatin1String("chrome_status_icon_"))) {
+        const QString processName = sniData->processName();
+        if (!processName.isEmpty()) {
+            return itemId + QLatin1Char('@') + processName;
+        }
+    }
+    return itemId;
+}
+
+QString SystemTray::serviceForItemId(const QString &itemId) const
+{
+    const auto services = StatusNotifierItemHost::self()->services();
+    for (const auto &service : services) {
+        auto item = StatusNotifierItemHost::self()->itemForService(service);
+        if (item) {
+            if (item->id() == itemId || extractItemIdHelper(item) == itemId || service == itemId) {
+                return service;
+            }
+        }
+    }
+    return QString();
+}
+
+void SystemTray::activateItemId(const QString &itemId, QPoint pos, QQuickItem *visualItem)
+{
+    const QString service = serviceForItemId(itemId);
+    if (!service.isEmpty()) {
+        activate(service, pos, visualItem);
+        if (m_backend && (itemId == QLatin1String("Easy Effects") || itemId.contains(QLatin1String("easyeffects"), Qt::CaseInsensitive))) {
+            QTimer::singleShot(1000, m_backend, &ControlBackend::checkEasyEffectsStatus);
+        }
+    } else {
+        qWarning() << "activateItemId: Could not find service for itemId:" << itemId;
+    }
+}
+
+void SystemTray::openContextMenuForItemId(const QString &itemId, QPoint pos, QQuickItem *visualItem)
+{
+    const QString service = serviceForItemId(itemId);
+    if (!service.isEmpty()) {
+        openContextMenu(service, pos, visualItem);
+        if (m_backend && (itemId == QLatin1String("Easy Effects") || itemId.contains(QLatin1String("easyeffects"), Qt::CaseInsensitive))) {
+            QTimer::singleShot(1000, m_backend, &ControlBackend::checkEasyEffectsStatus);
+            QTimer::singleShot(2500, m_backend, &ControlBackend::checkEasyEffectsStatus);
+        }
+    } else {
+        qWarning() << "openContextMenuForItemId: Could not find service for itemId:" << itemId;
+    }
+}
+
+QVariantMap SystemTray::extraItemInfo(const QString &itemId) const
+{
+    QVariantMap map;
+    const auto services = StatusNotifierItemHost::self()->services();
+    for (const auto &service : services) {
+        auto item = StatusNotifierItemHost::self()->itemForService(service);
+        if (item && (item->id() == itemId || extractItemIdHelper(item) == itemId || service == itemId)) {
+            map[QStringLiteral("service")] = service;
+            map[QStringLiteral("id")] = item->id();
+            map[QStringLiteral("title")] = item->title().isEmpty() ? item->id() : item->title();
+            map[QStringLiteral("iconName")] = !item->iconName().isEmpty() ? item->iconName() : item->attentionIconName();
+            map[QStringLiteral("toolTipTitle")] = item->toolTipTitle();
+            QString subTitle = item->toolTipSubTitle();
+            if (subTitle.isEmpty() && (item->id() == QLatin1String("Easy Effects") || itemId == QLatin1String("Easy Effects"))) {
+                if (m_backend && !m_backend->easyEffectsPreset().isEmpty()) {
+                    subTitle = m_backend->easyEffectsPreset();
+                }
+            }
+            map[QStringLiteral("toolTipSubTitle")] = subTitle;
+            map[QStringLiteral("status")] = item->status();
+            map[QStringLiteral("itemIsMenu")] = item->itemIsMenu();
+            return map;
+        }
+    }
+    return map;
 }
 
 K_PLUGIN_CLASS_WITH_JSON(SystemTray, "metadata.json")

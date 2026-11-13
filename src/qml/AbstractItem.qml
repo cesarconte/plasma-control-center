@@ -13,12 +13,15 @@ import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 
 import org.kde.kirigami as Kirigami
+import CachyOS.UI
 import org.kde.plasma.components as PlasmaComponents3
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasmoid
 
 PlasmaCore.ToolTipArea {
     id: abstractItem
+
+    clip: true
 
     required property int index
     required property var model
@@ -40,7 +43,7 @@ PlasmaCore.ToolTipArea {
     property bool effectivePressed: false
 
     // Keep these in sync with the layout of the tile board in HiddenItemsView.qml
-    readonly property int margins: Kirigami.Units.smallSpacing
+    readonly property int margins: CachyTheme.spacingSmall
     readonly property int maxTextLines: 2
 
     // --- Control Center tile geometry (only used in the popup) ---------------
@@ -50,7 +53,7 @@ PlasmaCore.ToolTipArea {
     readonly property bool editing: inHiddenLayout && root.editMode
     readonly property bool isCurrent: inHiddenLayout && root.hiddenLayout.activeFocus && root.hiddenLayout.currentIndex === index
     readonly property int tilePadding: Kirigami.Units.gridUnit * 0.7
-    readonly property real badgeSize: isLarge ? Kirigami.Units.iconSizes.large : Kirigami.Units.iconSizes.medium + Kirigami.Units.largeSpacing
+    readonly property real badgeSize: isLarge ? Kirigami.Units.iconSizes.large : Kirigami.Units.iconSizes.medium + CachyTheme.spacingLarge
     readonly property real tileIconSize: isSmall ? Kirigami.Units.iconSizes.medium
         : Kirigami.Units.iconSizes.roundedIconSize(badgeSize * 0.58)
 
@@ -67,7 +70,7 @@ PlasmaCore.ToolTipArea {
         targetItem: iconContainer
         running: (abstractItem.status === PlasmaCore.Types.NeedsAttentionStatus
                 || abstractItem.status === PlasmaCore.Types.RequiresAttentionStatus)
-            && Kirigami.Units.longDuration > 0
+            && CachyTheme.animNormal > 0
     }
 
     // Card
@@ -76,14 +79,14 @@ PlasmaCore.ToolTipArea {
         anchors.fill: abstractItem
         visible: abstractItem.inHiddenLayout && !systemTrayState.activeApplet
         radius: Math.min(Kirigami.Units.gridUnit * 1.1, height / 2)
-        color: Qt.alpha(Kirigami.Theme.textColor, mouseArea.containsMouse || abstractItem.isCurrent ? 0.17 : 0.09)
+        color: Qt.alpha(CachyPalette.text, mouseArea.containsMouse || abstractItem.isCurrent ? 0.17 : 0.09)
         border.width: abstractItem.isCurrent || abstractItem.editing ? 2 : 1
         border.color: abstractItem.isCurrent || abstractItem.editing
-            ? Qt.alpha(Kirigami.Theme.highlightColor, abstractItem.editing ? 0.55 : 1)
-            : Qt.alpha(Kirigami.Theme.textColor, 0.07)
+            ? Qt.alpha(CachyTheme.accentColor, abstractItem.editing ? 0.55 : 1)
+            : Qt.alpha(CachyPalette.text, 0.07)
 
         Behavior on color {
-            ColorAnimation { duration: Kirigami.Units.shortDuration }
+            ColorAnimation { duration: CachyTheme.animFast }
         }
     }
 
@@ -96,11 +99,11 @@ PlasmaCore.ToolTipArea {
         radius: width / 2
         x: abstractItem.tilePadding
         y: abstractItem.isLarge ? abstractItem.tilePadding : (abstractItem.height - height) / 2
-        color: Qt.alpha(mouseArea.containsMouse ? Kirigami.Theme.highlightColor : Kirigami.Theme.textColor,
+        color: Qt.alpha(mouseArea.containsMouse ? CachyTheme.accentColor : CachyPalette.text,
                         mouseArea.containsMouse ? 0.28 : 0.14)
 
         Behavior on color {
-            ColorAnimation { duration: Kirigami.Units.shortDuration }
+            ColorAnimation { duration: CachyTheme.animFast }
         }
     }
 
@@ -173,7 +176,7 @@ PlasmaCore.ToolTipArea {
             target: iconContainer
             property: "scale"
             to: 0.9
-            duration: Kirigami.Units.veryShortDuration
+            duration: CachyTheme.animFast
             easing.type: Easing.OutQuart
             onFinished: {
                 if (!iconContainer.pressed) {
@@ -187,7 +190,7 @@ PlasmaCore.ToolTipArea {
             target: iconContainer
             property: "scale"
             to: 1
-            duration: Kirigami.Units.longDuration - shrinkAnimation.duration
+            duration: CachyTheme.animNormal - shrinkAnimation.duration
             easing.type: Easing.OutCubic
         }
 
@@ -232,7 +235,7 @@ PlasmaCore.ToolTipArea {
         visible: abstractItem.inHiddenLayout && !abstractItem.isSmall && !systemTrayState.activeApplet
         spacing: 0
 
-        readonly property real textX: abstractItem.tilePadding + abstractItem.badgeSize + Kirigami.Units.largeSpacing
+        readonly property real textX: abstractItem.tilePadding + abstractItem.badgeSize + CachyTheme.spacingLarge
 
         x: abstractItem.isLarge ? abstractItem.tilePadding : textX
         width: abstractItem.isLarge
@@ -273,7 +276,7 @@ PlasmaCore.ToolTipArea {
         opacity: visible ? 1 : 0
         Behavior on opacity {
             NumberAnimation {
-                duration: Kirigami.Units.longDuration
+                duration: CachyTheme.animNormal
                 easing.type: Easing.InOutQuad
             }
         }
@@ -282,13 +285,13 @@ PlasmaCore.ToolTipArea {
     // --- Edit mode: drag to rearrange, button/right click to resize --------------
     SequentialAnimation on rotation {
         id: wiggle
-        running: abstractItem.editing && !systemTrayState.activeApplet && root.hiddenLayout.draggedRow !== abstractItem.index && Kirigami.Units.longDuration > 0
+        running: abstractItem.editing && !systemTrayState.activeApplet && root.hiddenLayout.draggedRow !== abstractItem.index && CachyTheme.animNormal > 0
         loops: Animation.Infinite
         onRunningChanged: if (!running) {
             abstractItem.rotation = 0;
         }
-        NumberAnimation { to: -0.9; duration: 110 + (abstractItem.index % 3) * 20; easing.type: Easing.InOutSine }
-        NumberAnimation { to: 0.9; duration: 110 + (abstractItem.index % 3) * 20; easing.type: Easing.InOutSine }
+        NumberAnimation { to: -0.5; duration: 110 + (abstractItem.index % 3) * 20; easing.type: Easing.InOutSine }
+        NumberAnimation { to: 0.5; duration: 110 + (abstractItem.index % 3) * 20; easing.type: Easing.InOutSine }
     }
 
     MouseArea {
@@ -301,6 +304,7 @@ PlasmaCore.ToolTipArea {
         anchors.fill: abstractItem
         visible: abstractItem.editing && !systemTrayState.activeApplet
         enabled: visible
+        preventStealing: true
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         cursorShape: pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
 
@@ -309,11 +313,11 @@ PlasmaCore.ToolTipArea {
                 sizeMenu.popup();
                 return;
             }
-            grabX = mouse.x;
-            grabY = mouse.y;
-            root.hiddenLayout.beginDrag(abstractItem.index);
-            // beginDrag() places the tile in its slot; keep it under the pointer
             const p = editOverlay.mapToItem(root.hiddenLayout, mouse.x, mouse.y);
+            const rc = root.hiddenLayout.slotRect(abstractItem.index);
+            grabX = p.x - rc.x;
+            grabY = p.y - rc.y;
+            root.hiddenLayout.beginDrag(abstractItem.index);
             root.hiddenLayout.dragTo(abstractItem.index, p.x, p.y, grabX, grabY);
         }
         onPositionChanged: mouse => {
@@ -334,10 +338,11 @@ PlasmaCore.ToolTipArea {
         anchors {
             top: abstractItem.top
             right: abstractItem.right
-            margins: Kirigami.Units.smallSpacing
+            margins: 4
         }
-        implicitWidth: Kirigami.Units.iconSizes.smallMedium + Kirigami.Units.smallSpacing
-        implicitHeight: implicitWidth
+        width: Kirigami.Units.iconSizes.small
+        height: width
+        padding: 0
         icon.name: "transform-scale"
         display: PlasmaComponents3.AbstractButton.IconOnly
         text: i18nc("@action:button Change the size of this tile", "Resize")
@@ -363,5 +368,42 @@ PlasmaCore.ToolTipArea {
         SizeItem { sizeName: "medium"; text: i18nc("@item:inmenu Tile size, two cells wide", "Medium") }
         SizeItem { sizeName: "large"; text: i18nc("@item:inmenu Tile size, two by two cells", "Large") }
         SizeItem { sizeName: "wide"; text: i18nc("@item:inmenu Tile size, full width", "Wide") }
+
+        QQC2.MenuSeparator {}
+
+        QQC2.MenuItem {
+            icon.name: "go-previous"
+            text: i18nc("@item:inmenu Move tile one position earlier", "Move Earlier")
+            enabled: (root.hiddenLayout?.board?.order?.indexOf(abstractItem.index) ?? -1) > 0
+            onTriggered: root.hiddenLayout?.moveTileByOffset(abstractItem.index, -1)
+        }
+        QQC2.MenuItem {
+            icon.name: "go-next"
+            text: i18nc("@item:inmenu Move tile one position later", "Move Later")
+            enabled: {
+                const order = root.hiddenLayout?.board?.order;
+                if (!order) return false;
+                const pos = order.indexOf(abstractItem.index);
+                return pos >= 0 && pos < order.length - 1;
+            }
+            onTriggered: root.hiddenLayout?.moveTileByOffset(abstractItem.index, 1)
+        }
+        QQC2.MenuItem {
+            icon.name: "go-top"
+            text: i18nc("@item:inmenu Move tile to the first position", "Move to Start")
+            enabled: (root.hiddenLayout?.board?.order?.indexOf(abstractItem.index) ?? -1) > 0
+            onTriggered: root.hiddenLayout?.moveTileToIndex(abstractItem.index, 0)
+        }
+        QQC2.MenuItem {
+            icon.name: "go-bottom"
+            text: i18nc("@item:inmenu Move tile to the last position", "Move to End")
+            enabled: {
+                const order = root.hiddenLayout?.board?.order;
+                if (!order) return false;
+                const pos = order.indexOf(abstractItem.index);
+                return pos >= 0 && pos < order.length - 1;
+            }
+            onTriggered: root.hiddenLayout?.moveTileToIndex(abstractItem.index, (root.hiddenLayout?.board?.order?.length ?? 1) - 1)
+        }
     }
 }

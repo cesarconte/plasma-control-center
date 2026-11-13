@@ -8,13 +8,14 @@
 import QtQuick
 
 import org.kde.kirigami as Kirigami
+import CachyOS.UI
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasmoid
 
 PlasmaCore.ToolTipArea {
     id: tooltip
 
-    readonly property int arrowAnimationDuration: Kirigami.Units.shortDuration
+    readonly property int arrowAnimationDuration: CachyTheme.animFast
     property bool vertical: Plasmoid.formFactor === PlasmaCore.Types.Vertical
     property int iconSize: Kirigami.Units.iconSizes.smallMedium
     implicitWidth: iconSize

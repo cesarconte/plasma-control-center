@@ -10,6 +10,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 
 import org.kde.kirigami as Kirigami
+import CachyOS.UI
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasmoid
 import org.kde.plasma.extras

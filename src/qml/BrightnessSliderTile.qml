@@ -8,6 +8,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
+import CachyOS.UI
 import org.kde.plasma.components as PlasmaComponents3
 import org.kde.plasma.plasmoid
 
@@ -21,12 +22,24 @@ Item {
     readonly property real brightnessRatio: curB / maxB
 
     CardBackground {
+        id: bg
         anchors.fill: parent
+        interactive: true
+        hovered: mouseArea.containsMouse
+        pressed: mouseArea.pressed
+    }
+
+    MouseArea {
+        id: mouseArea
+        anchors.fill: parent
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        acceptedButtons: Qt.NoButton
     }
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Kirigami.Units.mediumSpacing
+        anchors.margins: CachyTheme.marginCard
         spacing: 2
 
         // Línea 1: Únicamente el título "Brillo", tal como en macOS
@@ -41,7 +54,7 @@ Item {
         // Línea 2: Icono de brillo + Scroll (Slider) + Porcentaje
         RowLayout {
             Layout.fillWidth: true
-            spacing: Kirigami.Units.smallSpacing
+            spacing: CachyTheme.spacingSmall
 
             PlasmaComponents3.ToolButton {
                 icon.name: {
@@ -57,7 +70,7 @@ Item {
                 }
             }
 
-            PlasmaComponents3.Slider {
+            CachySlider {
                 id: brightnessSlider
                 Layout.fillWidth: true
                 from: 0.0

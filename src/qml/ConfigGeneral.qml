@@ -18,6 +18,7 @@ import QtQuick.Layouts
 
 import org.kde.kcmutils as KCMUtils
 import org.kde.kirigami as Kirigami
+import CachyOS.UI
 import org.kde.kitemmodels as KItemModels
 import org.kde.kquickcontrols as KQC
 import org.kde.plasma.core as PlasmaCore
@@ -238,7 +239,7 @@ KCMUtils.ScrollViewKCM {
     }
 
     header: ColumnLayout {
-        spacing: Kirigami.Units.smallSpacing
+        spacing: CachyTheme.spacingSmall
 
         Kirigami.InlineMessage {
             id: disablingSniMessage
@@ -417,7 +418,7 @@ KCMUtils.ScrollViewKCM {
                     onToggled: iconsPage.cfg_showAllItems = checked
                     checked: iconsPage.cfg_showAllItems
                     displayComponent: QQC2.CheckBox {
-                        horizontalPadding: Kirigami.Units.largeSpacing
+                        horizontalPadding: CachyTheme.spacingLarge
                         text: showAllCheckBox.text
                         checked: showAllCheckBox.checked
                         onToggled: showAllCheckBox.toggle()
@@ -487,7 +488,7 @@ KCMUtils.ScrollViewKCM {
 
             RowLayout {
                 width: parent.width
-                spacing: Kirigami.Units.smallSpacing
+                spacing: CachyTheme.spacingSmall
 
                 Kirigami.Icon {
                     implicitWidth: itemsList.iconSize

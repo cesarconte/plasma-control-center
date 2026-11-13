@@ -40,6 +40,14 @@ class ControlBackend : public QObject
     Q_PROPERTY(bool bluetoothEnabled READ bluetoothEnabled WRITE setBluetoothEnabled NOTIFY bluetoothEnabledChanged)
     Q_PROPERTY(QString bluetoothDevice READ bluetoothDevice NOTIFY bluetoothDeviceChanged)
 
+    // KDE Connect
+    Q_PROPERTY(bool kdeConnectConnected READ kdeConnectConnected NOTIFY kdeConnectConnectedChanged)
+    Q_PROPERTY(QString kdeConnectDevice READ kdeConnectDevice NOTIFY kdeConnectDeviceChanged)
+
+    // EasyEffects
+    Q_PROPERTY(bool easyEffectsRunning READ easyEffectsRunning NOTIFY easyEffectsRunningChanged)
+    Q_PROPERTY(QString easyEffectsPreset READ easyEffectsPreset NOTIFY easyEffectsPresetChanged)
+
 public:
     explicit ControlBackend(QObject *parent = nullptr);
     ~ControlBackend() override = default;
@@ -67,6 +75,12 @@ public:
     bool bluetoothEnabled() const;
     void setBluetoothEnabled(bool enabled);
     QString bluetoothDevice() const;
+
+    bool kdeConnectConnected() const;
+    QString kdeConnectDevice() const;
+
+    bool easyEffectsRunning() const;
+    QString easyEffectsPreset() const;
 
 public Q_SLOTS:
     void toggleNightLight();
@@ -102,6 +116,14 @@ Q_SIGNALS:
     void wifiSsidChanged(const QString &ssid);
     void bluetoothEnabledChanged(bool enabled);
     void bluetoothDeviceChanged(const QString &device);
+    void kdeConnectConnectedChanged(bool connected);
+    void kdeConnectDeviceChanged(const QString &device);
+    void easyEffectsRunningChanged(bool running);
+    void easyEffectsPresetChanged(const QString &preset);
+
+public Q_SLOTS:
+    void checkKdeConnectStatus();
+    void checkEasyEffectsStatus();
 
 private Q_SLOTS:
     void onBrightnessDbusChanged(int value);
@@ -132,6 +154,13 @@ private:
     bool m_bluetoothEnabled = false;
     QString m_bluetoothDevice;
 
+    bool m_kdeConnectConnected = false;
+    QString m_kdeConnectDevice;
+
+    bool m_easyEffectsRunning = false;
+    QString m_easyEffectsPreset;
+
     bool m_wifiQueryRunning = false;
     bool m_bluetoothQueryRunning = false;
+    bool m_easyEffectsQueryRunning = false;
 };

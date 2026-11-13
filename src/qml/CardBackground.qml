@@ -7,6 +7,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import org.kde.kirigami as Kirigami
+import CachyOS.UI
 
 Rectangle {
     id: root
@@ -17,22 +18,25 @@ Rectangle {
 
     radius: Math.min(Kirigami.Units.gridUnit * 1.1, height / 2)
     color: {
-        const base = Kirigami.Theme.alternateBackgroundColor;
+        const base = CachyPalette.cardBackground;
         if (pressed) {
             return Qt.darker(base, 1.25);
         }
         if (hovered && interactive) {
-            return Qt.tint(base, Qt.rgba(1, 1, 1, 0.14));
+            return Qt.tint(base, Qt.rgba(1, 1, 1, 0.22));
         }
         return base;
     }
 
-    border.width: (hovered && interactive) ? 1.5 : 1
+    border.width: (hovered && interactive) ? 2 : 1
     border.color: (hovered && interactive)
-        ? Qt.alpha(Kirigami.Theme.highlightColor, 0.75)
-        : Qt.alpha(Kirigami.Theme.textColor, 0.08)
+        ? Qt.alpha(CachyTheme.accentColor, 0.9)
+        : Qt.alpha(CachyPalette.text, 0.10)
 
     Behavior on color {
-        ColorAnimation { duration: Kirigami.Units.shortDuration }
+        ColorAnimation { duration: CachyTheme.animFast }
+    }
+    Behavior on border.width {
+        NumberAnimation { duration: CachyTheme.animFast }
     }
 }

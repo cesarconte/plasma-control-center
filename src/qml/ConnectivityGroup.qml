@@ -8,6 +8,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
+import CachyOS.UI
 import org.kde.plasma.plasmoid
 
 Item {
@@ -16,7 +17,7 @@ Item {
     readonly property var backend: Plasmoid.backend
 
     implicitWidth: Kirigami.Units.gridUnit * 15
-    implicitHeight: layout.implicitHeight + Kirigami.Units.largeSpacing * 2
+    implicitHeight: layout.implicitHeight + CachyTheme.spacingLarge * 2
 
     CardBackground {
         anchors.fill: parent
@@ -25,8 +26,8 @@ Item {
     ColumnLayout {
         id: layout
         anchors.fill: parent
-        anchors.margins: Kirigami.Units.mediumSpacing
-        spacing: Kirigami.Units.smallSpacing
+        anchors.margins: CachyTheme.marginCard
+        spacing: CachyTheme.spacingSmall
 
         // Wi-Fi
         ConnectivityRow {
@@ -48,7 +49,7 @@ Item {
         Rectangle {
             Layout.fillWidth: true
             height: 1
-            color: Qt.alpha(Kirigami.Theme.textColor, 0.08)
+            color: Qt.alpha(CachyPalette.text, 0.08)
         }
 
         // Bluetooth
@@ -71,18 +72,23 @@ Item {
         Rectangle {
             Layout.fillWidth: true
             height: 1
-            color: Qt.alpha(Kirigami.Theme.textColor, 0.08)
+            color: Qt.alpha(CachyPalette.text, 0.08)
         }
 
-        // KDE Connect (AirDrop equivalente)
+        // KDE Connect
         ConnectivityRow {
             Layout.fillWidth: true
             iconName: "kdeconnect-symbolic"
             title: i18n("KDE Connect")
-            statusText: i18n("Compartir archivos y portapapeles")
-            active: true
-            onToggled: if (root.backend) root.backend.openSystemSettings()
-            onDetailsClicked: if (root.backend) root.backend.openSystemSettings()
+            statusText: {
+                if (root.backend && root.backend.kdeConnectConnected && root.backend.kdeConnectDevice.length > 0) {
+                    return root.backend.kdeConnectDevice;
+                }
+                return i18n("Desconectado");
+            }
+            active: root.backend ? root.backend.kdeConnectConnected : false
+            onToggled: if (root.backend) root.backend.openKdeConnect()
+            onDetailsClicked: if (root.backend) root.backend.openKdeConnect()
         }
     }
 }

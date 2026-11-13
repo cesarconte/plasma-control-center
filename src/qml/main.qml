@@ -12,6 +12,7 @@ import QtQuick.Layouts
 
 import org.kde.draganddrop as DnD
 import org.kde.kirigami as Kirigami
+import CachyOS.UI
 import org.kde.kitemmodels as KItemModels
 import org.kde.ksvg as KSvg
 import org.kde.plasma.core as PlasmaCore
@@ -23,8 +24,8 @@ ContainmentItem {
     readonly property bool vertical: Plasmoid.formFactor === PlasmaCore.Types.Vertical
     readonly property bool reverseLayout: Plasmoid.configuration.reverseIconOrder
 
-    Layout.minimumWidth: vertical ? Kirigami.Units.iconSizes.small : mainLayout.implicitWidth + Kirigami.Units.smallSpacing
-    Layout.minimumHeight: vertical ? mainLayout.implicitHeight + Kirigami.Units.smallSpacing : Kirigami.Units.iconSizes.small
+    Layout.minimumWidth: vertical ? Kirigami.Units.iconSizes.small : mainLayout.implicitWidth + CachyTheme.spacingSmall
+    Layout.minimumHeight: vertical ? mainLayout.implicitHeight + CachyTheme.spacingSmall : Kirigami.Units.iconSizes.small
 
     LayoutMirroring.enabled: !vertical && ((Application.layoutDirection === Qt.RightToLeft) !== reverseLayout)
     LayoutMirroring.childrenInherit: true
@@ -258,7 +259,11 @@ ContainmentItem {
         target: systemTrayState
         function onExpandedChanged() {
             dialog.visible = systemTrayState.expanded;
-            if (!systemTrayState.expanded) {
+            if (systemTrayState.expanded) {
+                if (Plasmoid.backend) {
+                    Plasmoid.backend.refreshAll();
+                }
+            } else {
                 root.editMode = false;
                 activeModel.invalidateFilter();
                 hiddenModel.invalidateFilter();
@@ -406,10 +411,10 @@ ContainmentItem {
 
                 readonly property int gridThickness: root.vertical ? root.width : root.height
                 // Should change to 2 rows/columns on a 56px panel (in standard DPI)
-                readonly property int rowsOrColumns: autoSize ? 1 : Math.max(1, Math.min(count, Math.floor(gridThickness / (smallIconSize + Kirigami.Units.smallSpacing))))
+                readonly property int rowsOrColumns: autoSize ? 1 : Math.max(1, Math.min(count, Math.floor(gridThickness / (smallIconSize + CachyTheme.spacingSmall))))
 
                 // Add margins only if the panel is larger than a small icon (to avoid large gaps between tiny icons)
-                readonly property int cellSpacing: Kirigami.Units.smallSpacing * Plasmoid.configuration.iconSpacing
+                readonly property int cellSpacing: CachyTheme.spacingSmall * Plasmoid.configuration.iconSpacing
                 readonly property int smallSizeCellLength: gridThickness < smallIconSize ? smallIconSize : smallIconSize + cellSpacing
 
                 cellHeight: {
@@ -499,14 +504,14 @@ ContainmentItem {
                 default:
                     return Qt.TopEdge
             }
-            margin: (Plasmoid.containmentDisplayHints & PlasmaCore.Types.ContainmentPrefersFloatingApplets) ? Kirigami.Units.largeSpacing : 0
+            margin: (Plasmoid.containmentDisplayHints & PlasmaCore.Types.ContainmentPrefersFloatingApplets) ? CachyTheme.spacingLarge : 0
 
             Behavior on margin {
                 NumberAnimation {
                     // Since the panel animation won't be perfectly in sync,
                     // using a duration larger than the panel animation results
                     // in a better-looking animation.
-                    duration: Kirigami.Units.veryLongDuration
+                    duration: CachyTheme.animNormal
                     easing.type: Easing.OutCubic
                 }
             }
@@ -521,6 +526,8 @@ ContainmentItem {
             hideOnWindowDeactivate: !Plasmoid.configuration.pin
             visible: systemTrayState.expanded
             appletInterface: root
+            width: expandedRepresentation.implicitWidth
+            height: expandedRepresentation.implicitHeight
 
             backgroundHints: (Plasmoid.containmentDisplayHints & PlasmaCore.Types.ContainmentPrefersOpaqueBackground) ? PlasmaCore.AppletPopup.SolidBackground : PlasmaCore.AppletPopup.StandardBackground
 

@@ -650,6 +650,9 @@ void SystemTray::activateItemId(const QString &itemId, QPoint pos, QQuickItem *v
     const QString service = serviceForItemId(itemId);
     if (!service.isEmpty()) {
         activate(service, pos, visualItem);
+        if (m_backend && (itemId == QLatin1String("Easy Effects") || itemId.contains(QLatin1String("easyeffects"), Qt::CaseInsensitive))) {
+            QTimer::singleShot(1000, m_backend, &ControlBackend::checkEasyEffectsStatus);
+        }
     } else {
         qWarning() << "activateItemId: Could not find service for itemId:" << itemId;
     }
@@ -660,6 +663,10 @@ void SystemTray::openContextMenuForItemId(const QString &itemId, QPoint pos, QQu
     const QString service = serviceForItemId(itemId);
     if (!service.isEmpty()) {
         openContextMenu(service, pos, visualItem);
+        if (m_backend && (itemId == QLatin1String("Easy Effects") || itemId.contains(QLatin1String("easyeffects"), Qt::CaseInsensitive))) {
+            QTimer::singleShot(1000, m_backend, &ControlBackend::checkEasyEffectsStatus);
+            QTimer::singleShot(2500, m_backend, &ControlBackend::checkEasyEffectsStatus);
+        }
     } else {
         qWarning() << "openContextMenuForItemId: Could not find service for itemId:" << itemId;
     }
@@ -677,7 +684,13 @@ QVariantMap SystemTray::extraItemInfo(const QString &itemId) const
             map[QStringLiteral("title")] = item->title().isEmpty() ? item->id() : item->title();
             map[QStringLiteral("iconName")] = !item->iconName().isEmpty() ? item->iconName() : item->attentionIconName();
             map[QStringLiteral("toolTipTitle")] = item->toolTipTitle();
-            map[QStringLiteral("toolTipSubTitle")] = item->toolTipSubTitle();
+            QString subTitle = item->toolTipSubTitle();
+            if (subTitle.isEmpty() && (item->id() == QLatin1String("Easy Effects") || itemId == QLatin1String("Easy Effects"))) {
+                if (m_backend && !m_backend->easyEffectsPreset().isEmpty()) {
+                    subTitle = m_backend->easyEffectsPreset();
+                }
+            }
+            map[QStringLiteral("toolTipSubTitle")] = subTitle;
             map[QStringLiteral("status")] = item->status();
             map[QStringLiteral("itemIsMenu")] = item->itemIsMenu();
             return map;

@@ -8,11 +8,14 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
+import CachyOS.UI
 import org.kde.plasma.components as PlasmaComponents3
 import org.kde.plasma.plasmoid
 
 Item {
     id: root
+
+    clip: true
 
     readonly property var backend: Plasmoid.backend
 
@@ -37,8 +40,8 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Kirigami.Units.mediumSpacing
-        spacing: Kirigami.Units.smallSpacing
+        anchors.margins: CachyTheme.marginCard
+        spacing: CachyTheme.spacingSmall
 
         // Icono circular grande superior
         Rectangle {
@@ -46,11 +49,11 @@ Item {
             Layout.preferredHeight: Layout.preferredWidth
             radius: Layout.preferredWidth / 2
             color: (root.backend && root.backend.powerProfile === "performance")
-                ? Kirigami.Theme.highlightColor
-                : Qt.alpha(Kirigami.Theme.textColor, 0.12)
+                ? CachyTheme.accentColor
+                : Qt.alpha(CachyPalette.text, 0.12)
 
             Behavior on color {
-                ColorAnimation { duration: Kirigami.Units.shortDuration }
+                ColorAnimation { duration: CachyTheme.animFast }
             }
 
             Kirigami.Icon {
@@ -58,14 +61,13 @@ Item {
                 implicitWidth: Kirigami.Units.iconSizes.medium
                 implicitHeight: implicitWidth
                 source: {
-                    if (!root.backend) return "battery";
-                    if (root.backend.powerProfile === "performance") return "speedometer";
-                    if (root.backend.powerProfile === "power-saver") return "battery-low";
-                    return "battery";
+                    if (!root.backend) return "battery-full-symbolic";
+                    if (root.backend.powerProfile === "performance") return "speedometer-symbolic";
+                    if (root.backend.powerProfile === "power-saver") return "battery-low-symbolic";
+                    return "battery-full-symbolic";
                 }
-                color: (root.backend && root.backend.powerProfile === "performance")
-                    ? Kirigami.Theme.highlightedTextColor
-                    : Kirigami.Theme.textColor
+                isMask: true
+                color: CachyPalette.text
             }
         }
 

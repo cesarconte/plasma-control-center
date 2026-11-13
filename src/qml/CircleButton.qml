@@ -7,10 +7,14 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import org.kde.kirigami as Kirigami
+import CachyOS.UI
 import org.kde.plasma.components as PlasmaComponents3
 
 Item {
     id: root
+
+    clip: true
+
 
     property string iconName: ""
     property string toolTipText: ""
@@ -31,21 +35,21 @@ Item {
         radius: width / 2
         color: {
             if (mouseArea.pressed) {
-                return root.active ? Qt.darker(Kirigami.Theme.highlightColor, 1.15) : Qt.darker(Kirigami.Theme.alternateBackgroundColor, 1.15);
+                return root.active ? Qt.darker(CachyTheme.accentColor, 1.25) : Qt.darker(CachyPalette.cardBackground, 1.25);
             }
             if (mouseArea.containsMouse) {
-                return root.active ? Qt.lighter(Kirigami.Theme.highlightColor, 1.08) : Qt.lighter(Kirigami.Theme.alternateBackgroundColor, 1.08);
+                return root.active ? Qt.lighter(CachyTheme.accentColor, 1.15) : Qt.lighter(CachyPalette.cardBackground, 1.15);
             }
-            return root.active ? Kirigami.Theme.highlightColor : Kirigami.Theme.alternateBackgroundColor;
+            return root.active ? CachyTheme.accentColor : CachyPalette.cardBackground;
         }
 
         border.width: 1
         border.color: mouseArea.containsMouse
-            ? Qt.alpha(Kirigami.Theme.highlightColor, 0.4)
-            : Qt.alpha(Kirigami.Theme.textColor, 0.08)
+            ? Qt.alpha(CachyTheme.accentColor, 0.7)
+            : Qt.alpha(CachyPalette.text, 0.10)
 
         Behavior on color {
-            ColorAnimation { duration: Kirigami.Units.shortDuration }
+            ColorAnimation { duration: CachyTheme.animFast }
         }
 
         Kirigami.Icon {
@@ -53,21 +57,22 @@ Item {
             implicitWidth: Kirigami.Units.iconSizes.smallMedium
             implicitHeight: implicitWidth
             source: root.iconName
-            color: root.active ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+            isMask: true
+            color: CachyPalette.text
         }
+    }
 
-        MouseArea {
-            id: mouseArea
-            anchors.fill: parent
-            acceptedButtons: Qt.LeftButton | Qt.RightButton
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: mouse => {
-                if (mouse.button === Qt.RightButton) {
-                    root.rightClicked(mouse);
-                } else {
-                    root.clicked();
-                }
+    MouseArea {
+        id: mouseArea
+        anchors.fill: parent
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        onClicked: mouse => {
+            if (mouse.button === Qt.RightButton) {
+                root.rightClicked(mouse);
+            } else {
+                root.clicked();
             }
         }
     }

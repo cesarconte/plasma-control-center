@@ -8,10 +8,14 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
+import CachyOS.UI
 import org.kde.plasma.components as PlasmaComponents3
 
 Item {
     id: root
+
+    clip: true
+
 
     property string iconName: ""
     property string title: ""
@@ -42,18 +46,18 @@ Item {
 
     RowLayout {
         anchors.fill: parent
-        anchors.margins: Kirigami.Units.mediumSpacing
-        spacing: Kirigami.Units.mediumSpacing
+        anchors.margins: CachyTheme.marginCard
+        spacing: CachyTheme.spacingMedium
 
         // Icono circular consistente
         Rectangle {
             Layout.preferredWidth: Math.round(Kirigami.Units.gridUnit * 2.0)
             Layout.preferredHeight: Layout.preferredWidth
             radius: Layout.preferredWidth / 2
-            color: root.active ? Kirigami.Theme.highlightColor : Qt.alpha(Kirigami.Theme.textColor, 0.10)
+            color: root.active ? CachyPalette.accentText : Qt.alpha(CachyPalette.text, 0.10)
 
             Behavior on color {
-                ColorAnimation { duration: Kirigami.Units.shortDuration }
+                ColorAnimation { duration: CachyTheme.animFast }
             }
 
             Kirigami.Icon {
@@ -61,7 +65,8 @@ Item {
                 implicitWidth: Kirigami.Units.iconSizes.smallMedium
                 implicitHeight: implicitWidth
                 source: root.iconName
-                color: root.active ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                isMask: true
+                color: CachyPalette.text
             }
         }
 

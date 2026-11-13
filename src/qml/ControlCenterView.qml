@@ -8,6 +8,7 @@ import QtQuick
 import QtQuick.Layouts
 
 import org.kde.kirigami as Kirigami
+import CachyOS.UI
 import org.kde.plasma.components as PlasmaComponents3
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.networkmanagement as PlasmaNM
@@ -17,24 +18,30 @@ import org.kde.plasma.private.volume as PlasmaAudio
 PlasmaComponents3.ScrollView {
     id: controlCenterView
 
+
     property alias layout: ccTasks
 
     hoverEnabled: true
     background: null
     contentWidth: availableWidth
-    implicitHeight: visible ? (ccTasks.height + ccTasks.margin * 2) : 0
+    implicitHeight: visible ? (ccTasks.height + ccTasks.margin) : 0
 
     onVisibleChanged: {
         if (visible) {
             ccTasks.modelTick++;
+            if (popup && popup.backend) {
+                popup.backend.refreshAll();
+            }
         }
     }
 
     Flickable {
         id: flickable
 
+        anchors.fill: parent
         contentWidth: width
-        contentHeight: ccTasks.height + ccTasks.margin * 2
+        contentHeight: ccTasks.height + ccTasks.margin
+        flickableDirection: Flickable.VerticalFlick
         boundsBehavior: Flickable.StopAtBounds
         interactive: ccTasks.draggedId === ""
         clip: true
@@ -62,14 +69,15 @@ PlasmaComponents3.ScrollView {
 
         Item {
             id: ccTasks
+            clip: true
 
             PlasmaNM.Handler {
                 id: nmHandler
             }
 
             readonly property int columns: 4
-            readonly property int margin: Kirigami.Units.largeSpacing
-            readonly property int gap: Kirigami.Units.largeSpacing
+            readonly property int margin: CachyTheme.spacingLarge
+            readonly property int gap: CachyTheme.spacingLarge
             readonly property real cell: Math.max(1, (width - gap * (columns - 1)) / columns)
             readonly property real rowHeight: Math.round(Math.max(cell * 0.72, Kirigami.Units.gridUnit * 3.5))
 
@@ -83,7 +91,7 @@ PlasmaComponents3.ScrollView {
             property real autoScrollStep: 0
 
             property int modelTick: 0
-            readonly property real scrollBarReserve: Kirigami.Units.smallSpacing * 2
+            readonly property real scrollBarReserve: 0
 
             x: margin
             width: controlCenterView.width - margin * 2 - scrollBarReserve
@@ -250,6 +258,11 @@ PlasmaComponents3.ScrollView {
             }
 
             function extraStatus(id: string): string {
+                if (id === "Easy Effects" || id === "com.github.wwmm.easyeffects") {
+                    if (popup && popup.backend && popup.backend.easyEffectsPreset && popup.backend.easyEffectsPreset.length > 0) {
+                        return popup.backend.easyEffectsPreset;
+                    }
+                }
                 const sub = extraRoleData(id, "ToolTipSubTitle", 376);
                 if (sub && typeof sub === "string" && sub.length > 0) return sub;
                 const tt = extraRoleData(id, "ToolTipTitle", 377);
@@ -510,14 +523,14 @@ PlasmaComponents3.ScrollView {
                 height: targetRect.height
                 z: 10
                 radius: Math.min(Kirigami.Units.gridUnit * 1.1, height / 2)
-                color: Qt.alpha(Kirigami.Theme.highlightColor, 0.22)
+                color: Qt.alpha(CachyTheme.accentColor, 0.22)
                 border.width: 2
-                border.color: Kirigami.Theme.highlightColor
+                border.color: CachyPalette.accentText
 
-                Behavior on x { NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic } }
-                Behavior on y { NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic } }
-                Behavior on width { NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic } }
-                Behavior on height { NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic } }
+                Behavior on x { NumberAnimation { duration: CachyTheme.animFast; easing.type: Easing.OutCubic } }
+                Behavior on y { NumberAnimation { duration: CachyTheme.animFast; easing.type: Easing.OutCubic } }
+                Behavior on width { NumberAnimation { duration: CachyTheme.animFast; easing.type: Easing.OutCubic } }
+                Behavior on height { NumberAnimation { duration: CachyTheme.animFast; easing.type: Easing.OutCubic } }
             }
 
             // Component definitions for each tile
@@ -636,8 +649,10 @@ PlasmaComponents3.ScrollView {
                         CircleButton {
                             anchors.fill: parent
                             iconName: "kdeconnect-symbolic"
-                            toolTipText: i18n("AirDrop (KDE Connect)")
-                            active: true
+                            toolTipText: (popup.backend && popup.backend.kdeConnectConnected && popup.backend.kdeConnectDevice.length > 0)
+                                ? i18n("KDE Connect: %1", popup.backend.kdeConnectDevice)
+                                : i18n("KDE Connect")
+                            active: popup.backend ? popup.backend.kdeConnectConnected : false
                             onClicked: if (popup.backend) popup.backend.openKdeConnect()
                         }
                     }
@@ -646,9 +661,14 @@ PlasmaComponents3.ScrollView {
                         ConnectivityPill {
                             anchors.fill: parent
                             iconName: "kdeconnect-symbolic"
-                            title: i18n("AirDrop")
-                            statusText: i18n("KDE Connect")
-                            active: true
+                            title: i18n("KDE Connect")
+                            statusText: {
+                                if (popup.backend && popup.backend.kdeConnectConnected && popup.backend.kdeConnectDevice.length > 0) {
+                                    return popup.backend.kdeConnectDevice;
+                                }
+                                return i18n("Desconectado");
+                            }
+                            active: popup.backend ? popup.backend.kdeConnectConnected : false
                             onToggled: if (popup.backend) popup.backend.openKdeConnect()
                             onDetailsClicked: if (popup.backend) popup.backend.openKdeConnect()
                         }
@@ -723,7 +743,7 @@ PlasmaComponents3.ScrollView {
                         id: dmSmall
                         CircleButton {
                             anchors.fill: parent
-                            iconName: (popup.backend && popup.backend.darkMode) ? "weather-clear-night" : "weather-clear"
+                            iconName: (popup.backend && popup.backend.darkMode) ? "weather-clear-night-symbolic" : "weather-clear-symbolic"
                             active: popup.backend ? (popup.backend.themeMode === "dark" || popup.backend.themeMode === "auto") : false
                             toolTipText: {
                                 if (!popup.backend) return i18n("Aspecto: Modo claro");
@@ -738,7 +758,7 @@ PlasmaComponents3.ScrollView {
                         id: dmPill
                         QuickToggleTile {
                             anchors.fill: parent
-                            iconName: (popup.backend && popup.backend.darkMode) ? "weather-clear-night" : "weather-clear"
+                            iconName: (popup.backend && popup.backend.darkMode) ? "weather-clear-night-symbolic" : "weather-clear-symbolic"
                             title: i18n("Aspecto")
                             statusText: {
                                 if (!popup.backend) return i18n("Modo claro");
@@ -768,10 +788,10 @@ PlasmaComponents3.ScrollView {
                         CircleButton {
                             anchors.fill: parent
                             iconName: {
-                                if (!popup.backend) return "battery";
+                                if (!popup.backend) return "battery-full-symbolic";
                                 if (popup.backend.powerProfile === "performance") return "speedometer";
-                                if (popup.backend.powerProfile === "power-saver") return "battery-low";
-                                return "battery";
+                                if (popup.backend.powerProfile === "power-saver") return "battery-low-symbolic";
+                                return "battery-full-symbolic";
                             }
                             active: popup.backend ? (popup.backend.powerProfile === "performance") : false
                             toolTipText: {
@@ -794,10 +814,10 @@ PlasmaComponents3.ScrollView {
                         QuickToggleTile {
                             anchors.fill: parent
                             iconName: {
-                                if (!popup.backend) return "battery";
+                                if (!popup.backend) return "battery-full-symbolic";
                                 if (popup.backend.powerProfile === "performance") return "speedometer";
-                                if (popup.backend.powerProfile === "power-saver") return "battery-low";
-                                return "battery";
+                                if (popup.backend.powerProfile === "power-saver") return "battery-low-symbolic";
+                                return "battery-full-symbolic";
                             }
                             title: i18n("Energía")
                             statusText: {
@@ -822,7 +842,7 @@ PlasmaComponents3.ScrollView {
                         id: ksSmall
                         CircleButton {
                             anchors.fill: parent
-                            iconName: "preferences-desktop-display"
+                            iconName: "preferences-desktop-display-randr-symbolic"
                             toolTipText: i18n("Pantalla: Disposición y monitores")
                             active: true
                             onClicked: if (popup.backend) popup.backend.openDisplaySettings()
@@ -832,7 +852,7 @@ PlasmaComponents3.ScrollView {
                         id: ksPill
                         QuickToggleTile {
                             anchors.fill: parent
-                            iconName: "preferences-desktop-display"
+                            iconName: "preferences-desktop-display-randr-symbolic"
                             title: i18n("Pantalla")
                             statusText: i18n("Monitores")
                             active: true
@@ -926,8 +946,19 @@ PlasmaComponents3.ScrollView {
                         ? Plasmoid.extraItemInfo(extraItemId)
                         : ({})
                     readonly property string tileTitle: (itemInfo && itemInfo.title) ? itemInfo.title : ccTasks.extraTitle(extraItemId)
-                    readonly property string tileIcon: (itemInfo && itemInfo.iconName) ? itemInfo.iconName : ccTasks.extraIcon(extraItemId)
+                    readonly property string tileIcon: {
+                        if (extraItemId === "Easy Effects" || extraItemId === "com.github.wwmm.easyeffects" || tileTitle === "Easy Effects") {
+                            return "com.github.wwmm.easyeffects-symbolic";
+                        }
+                        const ic = (itemInfo && itemInfo.iconName) ? itemInfo.iconName : ccTasks.extraIcon(extraItemId);
+                        return ic || "application-x-executable";
+                    }
                     readonly property string tileStatus: {
+                        if (extraItemId === "Easy Effects" || extraItemId === "com.github.wwmm.easyeffects" || tileTitle === "Easy Effects") {
+                            if (popup && popup.backend && popup.backend.easyEffectsPreset && popup.backend.easyEffectsPreset.length > 0) {
+                                return popup.backend.easyEffectsPreset;
+                            }
+                        }
                         if (itemInfo && itemInfo.toolTipSubTitle && itemInfo.toolTipSubTitle.length > 0) {
                             return itemInfo.toolTipSubTitle;
                         }
@@ -940,7 +971,12 @@ PlasmaComponents3.ScrollView {
 
                     Loader {
                         anchors.fill: parent
-                        sourceComponent: (root.ccTileSize(extraTileRoot.extraItemId) === "small") ? extraSmall : extraPill
+                        sourceComponent: {
+                            const sz = root.ccTileSize(extraTileRoot.extraItemId);
+                            if (sz === "small") return extraSmall;
+                            if (sz === "large") return extraLarge;
+                            return extraPill;
+                        }
 
                         Component {
                             id: extraSmall
@@ -952,7 +988,9 @@ PlasmaComponents3.ScrollView {
                                     id: circleBtn
                                     anchors.fill: parent
                                     iconName: extraTileRoot.tileIcon
-                                    toolTipText: extraTileRoot.tileTitle
+                                    toolTipText: (extraTileRoot.tileStatus.length > 0)
+                                        ? (extraTileRoot.tileTitle + ": " + extraTileRoot.tileStatus)
+                                        : extraTileRoot.tileTitle
                                     active: true
                                     onClicked: {
                                         const pos = Plasmoid.popupPosition(circleBtn, Math.round(circleBtn.width / 2), Math.round(circleBtn.height / 2));
@@ -967,100 +1005,104 @@ PlasmaComponents3.ScrollView {
                         }
 
                         Component {
-                            id: extraPill
+                            id: extraLarge
                             Item {
-                                id: pillItem
+                                id: largeItem
                                 anchors.fill: parent
 
-                                implicitWidth: Kirigami.Units.gridUnit * 12
-                                implicitHeight: Math.round(Kirigami.Units.gridUnit * 2.8)
-
                                 CardBackground {
-                                    id: cardBg
+                                    id: cardLargeBg
                                     anchors.fill: parent
                                     interactive: true
-                                    hovered: mainMouse.containsMouse || chevronBtn.hovered
-                                    pressed: mainMouse.pressed || chevronBtn.pressed
+                                    hovered: largeMouse.containsMouse || chevronLargeBtn.hovered
+                                    pressed: largeMouse.pressed || chevronLargeBtn.pressed
                                 }
 
-                                RowLayout {
+                                ColumnLayout {
                                     anchors.fill: parent
-                                    anchors.margins: Kirigami.Units.smallSpacing
-                                    spacing: Kirigami.Units.smallSpacing
+                                    anchors.margins: CachyTheme.marginCard
+                                    spacing: CachyTheme.spacingSmall
 
-                                    // Circular Icon
-                                    Rectangle {
-                                        Layout.preferredWidth: Math.round(Kirigami.Units.gridUnit * 2.1)
-                                        Layout.preferredHeight: Layout.preferredWidth
-                                        radius: Layout.preferredWidth / 2
-                                        color: Kirigami.Theme.highlightColor
-
-                                        Behavior on color {
-                                            ColorAnimation { duration: Kirigami.Units.shortDuration }
-                                        }
-
-                                        Kirigami.Icon {
-                                            anchors.centerIn: parent
-                                            implicitWidth: Kirigami.Units.iconSizes.smallMedium
-                                            implicitHeight: implicitWidth
-                                            source: extraTileRoot.tileIcon
-                                            color: Kirigami.Theme.highlightedTextColor
-                                        }
-                                    }
-
-                                    // Title & Status
-                                    ColumnLayout {
+                                    // Fila superior: Icono circular y chevron para menú
+                                    RowLayout {
                                         Layout.fillWidth: true
-                                        Layout.fillHeight: true
-                                        Layout.alignment: Qt.AlignVCenter
-                                        spacing: 1
+                                        spacing: CachyTheme.spacingSmall
 
-                                        PlasmaComponents3.Label {
-                                            Layout.fillWidth: true
-                                            text: extraTileRoot.tileTitle
-                                            font.weight: Font.DemiBold
-                                            font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
-                                            elide: Text.ElideRight
+                                        Rectangle {
+                                            Layout.preferredWidth: Math.round(Kirigami.Units.gridUnit * 2.4)
+                                            Layout.preferredHeight: Layout.preferredWidth
+                                            radius: Layout.preferredWidth / 2
+                                            color: CachyPalette.accentText
+
+                                            Behavior on color {
+                                                ColorAnimation { duration: CachyTheme.animFast }
+                                            }
+
+                                            Kirigami.Icon {
+                                                anchors.centerIn: parent
+                                                implicitWidth: Kirigami.Units.iconSizes.medium
+                                                implicitHeight: implicitWidth
+                                                source: extraTileRoot.tileIcon
+                                                isMask: true
+                                                color: CachyPalette.text
+                                            }
                                         }
 
-                                        PlasmaComponents3.Label {
+                                        Item {
                                             Layout.fillWidth: true
-                                            text: extraTileRoot.tileStatus
-                                            font.pointSize: Kirigami.Theme.smallFont.pointSize * 0.9
-                                            opacity: 0.75
-                                            elide: Text.ElideRight
-                                            visible: text.length > 0
+                                        }
+
+                                        PlasmaComponents3.ToolButton {
+                                            id: chevronLargeBtn
+                                            icon.name: "go-next-symbolic"
+                                            display: PlasmaComponents3.AbstractButton.IconOnly
+                                            implicitWidth: Kirigami.Units.iconSizes.small
+                                            implicitHeight: implicitWidth
+                                            onClicked: {
+                                                const pos = Plasmoid.popupPosition(chevronLargeBtn, Math.round(chevronLargeBtn.width / 2), Math.round(chevronLargeBtn.height / 2));
+                                                Plasmoid.openContextMenuForItemId(extraTileRoot.extraItemId, pos, chevronLargeBtn);
+                                            }
                                         }
                                     }
 
-                                    // Chevron ToolButton for context menu
-                                    PlasmaComponents3.ToolButton {
-                                        id: chevronBtn
-                                        icon.name: "go-next-symbolic"
-                                        display: PlasmaComponents3.AbstractButton.IconOnly
-                                        implicitWidth: Kirigami.Units.iconSizes.small
-                                        implicitHeight: implicitWidth
-                                        onClicked: {
-                                            const pos = Plasmoid.popupPosition(chevronBtn, Math.round(chevronBtn.width / 2), Math.round(chevronBtn.height / 2));
-                                            Plasmoid.openContextMenuForItemId(extraTileRoot.extraItemId, pos, chevronBtn);
-                                        }
+                                    // Espaciador para ubicar el texto en la parte inferior de la tarjeta
+                                    Item {
+                                        Layout.fillHeight: true
+                                    }
+
+                                    // Título y estado en la parte inferior
+                                    PlasmaComponents3.Label {
+                                        Layout.fillWidth: true
+                                        text: extraTileRoot.tileTitle
+                                        font.weight: Font.DemiBold
+                                        font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.05
+                                        elide: Text.ElideRight
+                                    }
+
+                                    PlasmaComponents3.Label {
+                                        Layout.fillWidth: true
+                                        text: extraTileRoot.tileStatus
+                                        font.pointSize: Kirigami.Theme.smallFont.pointSize * 0.95
+                                        opacity: 0.75
+                                        elide: Text.ElideRight
+                                        visible: text.length > 0
                                     }
                                 }
 
                                 MouseArea {
-                                    id: mainMouse
+                                    id: largeMouse
                                     anchors.fill: parent
-                                    anchors.rightMargin: chevronBtn.width + Kirigami.Units.smallSpacing
+                                    anchors.rightMargin: chevronLargeBtn.width + CachyTheme.spacingMedium
                                     acceptedButtons: Qt.LeftButton | Qt.RightButton
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
 
                                     onClicked: mouse => {
-                                        const pos = Plasmoid.popupPosition(pillItem, Math.round(mouse.x), Math.round(mouse.y));
+                                        const pos = Plasmoid.popupPosition(largeItem, Math.round(mouse.x), Math.round(mouse.y));
                                         if (mouse.button === Qt.RightButton) {
-                                            Plasmoid.openContextMenuForItemId(extraTileRoot.extraItemId, pos, pillItem);
+                                            Plasmoid.openContextMenuForItemId(extraTileRoot.extraItemId, pos, largeItem);
                                         } else {
-                                            Plasmoid.activateItemId(extraTileRoot.extraItemId, pos, pillItem);
+                                            Plasmoid.activateItemId(extraTileRoot.extraItemId, pos, largeItem);
                                         }
                                     }
                                 }
@@ -1069,9 +1111,28 @@ PlasmaComponents3.ScrollView {
                                     text: {
                                         const t = extraTileRoot.tileTitle;
                                         const s = extraTileRoot.tileStatus;
-                                        return (s && s.length > 0) ? `${t}: ${s}` : t;
+                                        return (s && s.length > 0 && s !== t) ? (t + " (" + s + ")") : t;
                                     }
-                                    visible: (mainMouse.containsMouse || chevronBtn.hovered) && text.length > 0
+                                    visible: largeItem.hovered || largeMouse.containsMouse || chevronLargeBtn.hovered
+                                }
+                            }
+                        }
+
+                        Component {
+                            id: extraPill
+                            ConnectivityPill {
+                                anchors.fill: parent
+                                iconName: extraTileRoot.tileIcon
+                                title: extraTileRoot.tileTitle
+                                statusText: extraTileRoot.tileStatus
+                                active: true
+                                onToggled: {
+                                    const pos = Plasmoid.popupPosition(this, Math.round(width / 2), Math.round(height / 2));
+                                    Plasmoid.activateItemId(extraTileRoot.extraItemId, pos, this);
+                                }
+                                onDetailsClicked: {
+                                    const pos = Plasmoid.popupPosition(this, Math.round(width / 2), Math.round(height / 2));
+                                    Plasmoid.openContextMenuForItemId(extraTileRoot.extraItemId, pos, this);
                                 }
                             }
                         }
@@ -1101,11 +1162,11 @@ PlasmaComponents3.ScrollView {
                     scale: dragged ? 1.05 : 1
                     opacity: dragged ? 0.92 : 1
 
-                    Behavior on x { enabled: !ccTile.dragged; NumberAnimation { duration: Kirigami.Units.longDuration; easing.type: Easing.OutCubic } }
-                    Behavior on y { enabled: !ccTile.dragged; NumberAnimation { duration: Kirigami.Units.longDuration; easing.type: Easing.OutCubic } }
-                    Behavior on width { NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic } }
-                    Behavior on height { NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic } }
-                    Behavior on scale { NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic } }
+                    Behavior on x { enabled: !ccTile.dragged; NumberAnimation { duration: CachyTheme.animNormal; easing.type: Easing.OutCubic } }
+                    Behavior on y { enabled: !ccTile.dragged; NumberAnimation { duration: CachyTheme.animNormal; easing.type: Easing.OutCubic } }
+                    Behavior on width { NumberAnimation { duration: CachyTheme.animFast; easing.type: Easing.OutCubic } }
+                    Behavior on height { NumberAnimation { duration: CachyTheme.animFast; easing.type: Easing.OutCubic } }
+                    Behavior on scale { NumberAnimation { duration: CachyTheme.animFast; easing.type: Easing.OutCubic } }
 
                     Loader {
                         id: tileLoader

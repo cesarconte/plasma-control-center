@@ -8,6 +8,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
+import CachyOS.UI
 import org.kde.plasma.components as PlasmaComponents3
 
 Item {
@@ -30,14 +31,14 @@ Item {
         height: editOverlay.isSmall ? width : parent.height
         radius: editOverlay.isSmall ? width / 2 : Kirigami.Units.gridUnit * 1.0
 
-        color: editMouse.containsMouse ? Qt.alpha(Kirigami.Theme.highlightColor, 0.16) : "transparent"
+        color: editMouse.containsMouse ? Qt.alpha(CachyTheme.accentColor, 0.16) : "transparent"
         border.width: 1.5
         border.color: editMouse.containsMouse
-            ? Kirigami.Theme.highlightColor
-            : Qt.alpha(Kirigami.Theme.highlightColor, 0.45)
+            ? CachyTheme.accentColor
+            : Qt.alpha(CachyTheme.accentColor, 0.45)
 
         Behavior on color {
-            ColorAnimation { duration: Kirigami.Units.shortDuration }
+            ColorAnimation { duration: CachyTheme.animFast }
         }
     }
 

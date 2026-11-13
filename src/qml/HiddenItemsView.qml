@@ -10,6 +10,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 
 import org.kde.kirigami as Kirigami
+import CachyOS.UI
 import org.kde.plasma.components as PlasmaComponents3
 import org.kde.plasma.plasmoid
 
@@ -24,6 +25,7 @@ import org.kde.plasma.plasmoid
 PlasmaComponents3.ScrollView {
     id: hiddenTasksView
 
+
     property alias layout: hiddenTasks
 
     hoverEnabled: true
@@ -37,8 +39,10 @@ PlasmaComponents3.ScrollView {
     Flickable {
         id: flickable
 
+        anchors.fill: parent
         contentWidth: width
         contentHeight: hiddenTasks.height + hiddenTasks.margin
+        flickableDirection: Flickable.VerticalFlick
         boundsBehavior: Flickable.StopAtBounds
         interactive: hiddenTasks.draggedRow < 0
         clip: true
@@ -67,11 +71,12 @@ PlasmaComponents3.ScrollView {
 
         Item {
             id: hiddenTasks
+            clip: true
 
             // Number of grid columns of the board. Tile spans are expressed in these.
             readonly property int columns: 4
-            readonly property int margin: Kirigami.Units.largeSpacing
-            readonly property int gap: Kirigami.Units.largeSpacing
+            readonly property int margin: CachyTheme.spacingLarge
+            readonly property int gap: CachyTheme.spacingLarge
             readonly property real cell: Math.max(1, (width - gap * (columns - 1)) / columns)
             // Tiles are wider than tall, like in macOS: a row is a bit lower than a column is wide
             readonly property real rowHeight: Math.round(Math.max(cell * 0.72, Kirigami.Units.gridUnit * 3.5))
@@ -94,7 +99,7 @@ PlasmaComponents3.ScrollView {
             property int modelTick: 0
 
             // Space always reserved for the scroll bar, so showing it never changes the layout (binding loop)
-            readonly property real scrollBarReserve: Kirigami.Units.smallSpacing * 2
+            readonly property real scrollBarReserve: 0
 
             x: margin
             width: hiddenTasksView.width - margin * 2 - scrollBarReserve
@@ -387,21 +392,21 @@ PlasmaComponents3.ScrollView {
                 height: targetRect.height
                 z: 10
                 radius: Math.min(Kirigami.Units.gridUnit * 1.1, height / 2)
-                color: Qt.alpha(Kirigami.Theme.highlightColor, 0.22)
+                color: Qt.alpha(CachyTheme.accentColor, 0.22)
                 border.width: 2
-                border.color: Kirigami.Theme.highlightColor
+                border.color: CachyTheme.accentColor
 
                 Behavior on x {
-                    NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic }
+                    NumberAnimation { duration: CachyTheme.animFast; easing.type: Easing.OutCubic }
                 }
                 Behavior on y {
-                    NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic }
+                    NumberAnimation { duration: CachyTheme.animFast; easing.type: Easing.OutCubic }
                 }
                 Behavior on width {
-                    NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic }
+                    NumberAnimation { duration: CachyTheme.animFast; easing.type: Easing.OutCubic }
                 }
                 Behavior on height {
-                    NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic }
+                    NumberAnimation { duration: CachyTheme.animFast; easing.type: Easing.OutCubic }
                 }
             }
 
@@ -427,20 +432,20 @@ PlasmaComponents3.ScrollView {
 
                     Behavior on x {
                         enabled: !tile.dragged
-                        NumberAnimation { duration: Kirigami.Units.longDuration; easing.type: Easing.OutCubic }
+                        NumberAnimation { duration: CachyTheme.animNormal; easing.type: Easing.OutCubic }
                     }
                     Behavior on y {
                         enabled: !tile.dragged
-                        NumberAnimation { duration: Kirigami.Units.longDuration; easing.type: Easing.OutCubic }
+                        NumberAnimation { duration: CachyTheme.animNormal; easing.type: Easing.OutCubic }
                     }
                     Behavior on width {
-                        NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic }
+                        NumberAnimation { duration: CachyTheme.animFast; easing.type: Easing.OutCubic }
                     }
                     Behavior on height {
-                        NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic }
+                        NumberAnimation { duration: CachyTheme.animFast; easing.type: Easing.OutCubic }
                     }
                     Behavior on scale {
-                        NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.OutCubic }
+                        NumberAnimation { duration: CachyTheme.animFast; easing.type: Easing.OutCubic }
                     }
                 }
             }

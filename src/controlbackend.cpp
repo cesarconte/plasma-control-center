@@ -10,12 +10,22 @@
 #include <KSharedConfig>
 #include <QDBusConnectionInterface>
 #include <QDBusReply>
+#include <QDBusServiceWatcher>
 #include <QDebug>
+#include <QDir>
+#include <QFile>
+#include <QFileSystemWatcher>
+#include <QSettings>
 #include <QStandardPaths>
 
 ControlBackend::ControlBackend(QObject *parent)
     : QObject(parent)
 {
+    const QString eeConfigPath = QDir::homePath() + QStringLiteral("/.config/easyeffects/db/easyeffectsrc");
+    if (QFile::exists(eeConfigPath)) {
+        QSettings eeSettings(eeConfigPath, QSettings::IniFormat);
+        m_easyEffectsPreset = eeSettings.value(QStringLiteral("Presets/lastLoadedOutputPreset")).toString().trimmed();
+    }
     setupDbusConnections();
     refreshAll();
 }
@@ -47,6 +57,52 @@ void ControlBackend::setupDbusConnections()
                                          QStringLiteral("PropertiesChanged"),
                                          this,
                                          SLOT(checkWifiStatus()));
+
+    // Señales de KDE Connect (reactivas)
+    bus.connect(QStringLiteral("org.kde.kdeconnect"),
+                QStringLiteral("/modules/kdeconnect"),
+                QStringLiteral("org.kde.kdeconnect.daemon"),
+                QStringLiteral("deviceAdded"),
+                this,
+                SLOT(checkKdeConnectStatus()));
+    bus.connect(QStringLiteral("org.kde.kdeconnect"),
+                QStringLiteral("/modules/kdeconnect"),
+                QStringLiteral("org.kde.kdeconnect.daemon"),
+                QStringLiteral("deviceRemoved"),
+                this,
+                SLOT(checkKdeConnectStatus()));
+    bus.connect(QStringLiteral("org.kde.kdeconnect"),
+                QStringLiteral("/modules/kdeconnect"),
+                QStringLiteral("org.kde.kdeconnect.daemon"),
+                QStringLiteral("deviceVisibilityChanged"),
+                this,
+                SLOT(checkKdeConnectStatus()));
+    bus.connect(QStringLiteral("org.kde.kdeconnect"),
+                QStringLiteral("/modules/kdeconnect"),
+                QStringLiteral("org.kde.kdeconnect.daemon"),
+                QStringLiteral("pairingChanged"),
+                this,
+                SLOT(checkKdeConnectStatus()));
+
+    auto *kdeWatcher = new QDBusServiceWatcher(QStringLiteral("org.kde.kdeconnect"),
+                                               bus,
+                                               QDBusServiceWatcher::WatchForOwnerChange,
+                                               this);
+    connect(kdeWatcher, &QDBusServiceWatcher::serviceRegistered, this, &ControlBackend::checkKdeConnectStatus);
+    connect(kdeWatcher, &QDBusServiceWatcher::serviceUnregistered, this, &ControlBackend::checkKdeConnectStatus);
+
+    // Watcher de EasyEffects en disco
+    auto *fsWatcher = new QFileSystemWatcher(this);
+    const QString eeConfigPath = QDir::homePath() + QStringLiteral("/.config/easyeffects/db/easyeffectsrc");
+    const QString eeDirPath = QDir::homePath() + QStringLiteral("/.config/easyeffects/db");
+    if (QFile::exists(eeConfigPath)) {
+        fsWatcher->addPath(eeConfigPath);
+    }
+    if (QDir(eeDirPath).exists()) {
+        fsWatcher->addPath(eeDirPath);
+    }
+    connect(fsWatcher, &QFileSystemWatcher::fileChanged, this, &ControlBackend::checkEasyEffectsStatus);
+    connect(fsWatcher, &QFileSystemWatcher::directoryChanged, this, &ControlBackend::checkEasyEffectsStatus);
 }
 
 void ControlBackend::refreshAll()
@@ -57,6 +113,8 @@ void ControlBackend::refreshAll()
     checkPowerProfileStatus();
     checkWifiStatus();
     checkBluetoothStatus();
+    checkKdeConnectStatus();
+    checkEasyEffectsStatus();
 }
 
 // ----------------------------------------------------------------------------
@@ -544,4 +602,133 @@ void ControlBackend::lockScreen()
     if (ssIface.isValid()) {
         ssIface.call(QStringLiteral("Lock"));
     }
+}
+
+// ----------------------------------------------------------------------------
+// KDE CONNECT
+// ----------------------------------------------------------------------------
+bool ControlBackend::kdeConnectConnected() const
+{
+    return m_kdeConnectConnected;
+}
+
+QString ControlBackend::kdeConnectDevice() const
+{
+    return m_kdeConnectDevice;
+}
+
+void ControlBackend::checkKdeConnectStatus()
+{
+    QDBusInterface daemonIface(QStringLiteral("org.kde.kdeconnect"),
+                               QStringLiteral("/modules/kdeconnect"),
+                               QStringLiteral("org.kde.kdeconnect.daemon"),
+                               QDBusConnection::sessionBus());
+    if (!daemonIface.isValid()) {
+        if (m_kdeConnectConnected) {
+            m_kdeConnectConnected = false;
+            Q_EMIT kdeConnectConnectedChanged(false);
+        }
+        if (!m_kdeConnectDevice.isEmpty()) {
+            m_kdeConnectDevice.clear();
+            Q_EMIT kdeConnectDeviceChanged(m_kdeConnectDevice);
+        }
+        return;
+    }
+
+    // Consultar dispositivos vinculados y alcanzables (conectados)
+    QDBusMessage msg = daemonIface.call(QStringLiteral("devices"), true, true);
+    QStringList reachableDevices;
+    if (msg.type() == QDBusMessage::ReplyMessage && !msg.arguments().isEmpty()) {
+        reachableDevices = msg.arguments().at(0).toStringList();
+    }
+
+    const bool connected = !reachableDevices.isEmpty();
+    QString deviceName;
+
+    if (connected) {
+        if (reachableDevices.size() == 1) {
+            const QString devId = reachableDevices.first();
+            QDBusInterface devIface(QStringLiteral("org.kde.kdeconnect"),
+                                    QStringLiteral("/modules/kdeconnect/devices/") + devId,
+                                    QStringLiteral("org.kde.kdeconnect.device"),
+                                    QDBusConnection::sessionBus());
+            if (devIface.isValid()) {
+                deviceName = devIface.property("name").toString();
+            }
+            if (deviceName.isEmpty()) {
+                deviceName = devId;
+            }
+        } else {
+            deviceName = tr("%1 dispositivos").arg(reachableDevices.size());
+        }
+    }
+
+    if (m_kdeConnectConnected != connected) {
+        m_kdeConnectConnected = connected;
+        Q_EMIT kdeConnectConnectedChanged(m_kdeConnectConnected);
+    }
+    if (m_kdeConnectDevice != deviceName) {
+        m_kdeConnectDevice = deviceName;
+        Q_EMIT kdeConnectDeviceChanged(m_kdeConnectDevice);
+    }
+}
+
+// ----------------------------------------------------------------------------
+// EASY EFFECTS
+// ----------------------------------------------------------------------------
+bool ControlBackend::easyEffectsRunning() const
+{
+    return m_easyEffectsRunning;
+}
+
+QString ControlBackend::easyEffectsPreset() const
+{
+    return m_easyEffectsPreset;
+}
+
+void ControlBackend::checkEasyEffectsStatus()
+{
+    // Cargar inmediatamente desde archivo para respuesta instantánea sin bloqueo
+    const QString configPath = QDir::homePath() + QStringLiteral("/.config/easyeffects/db/easyeffectsrc");
+    if (QFile::exists(configPath)) {
+        QSettings eeSettings(configPath, QSettings::IniFormat);
+        const QString cachedPreset = eeSettings.value(QStringLiteral("Presets/lastLoadedOutputPreset")).toString().trimmed();
+        if (!cachedPreset.isEmpty() && m_easyEffectsPreset.isEmpty()) {
+            m_easyEffectsPreset = cachedPreset;
+            Q_EMIT easyEffectsPresetChanged(m_easyEffectsPreset);
+        }
+    }
+
+    if (m_easyEffectsQueryRunning) return;
+    m_easyEffectsQueryRunning = true;
+
+    auto *proc = new QProcess(this);
+    connect(proc, &QProcess::finished, this, [this, proc](int exitCode) {
+        proc->deleteLater();
+        m_easyEffectsQueryRunning = false;
+        QString activePreset;
+        if (exitCode == 0) {
+            activePreset = QString::fromUtf8(proc->readAllStandardOutput()).trimmed();
+        }
+
+        if (activePreset.isEmpty()) {
+            const QString configPath = QDir::homePath() + QStringLiteral("/.config/easyeffects/db/easyeffectsrc");
+            if (QFile::exists(configPath)) {
+                QSettings eeSettings(configPath, QSettings::IniFormat);
+                activePreset = eeSettings.value(QStringLiteral("Presets/lastLoadedOutputPreset")).toString().trimmed();
+            }
+        }
+
+        const bool running = !activePreset.isEmpty();
+        if (m_easyEffectsRunning != running) {
+            m_easyEffectsRunning = running;
+            Q_EMIT easyEffectsRunningChanged(m_easyEffectsRunning);
+        }
+        if (m_easyEffectsPreset != activePreset) {
+            m_easyEffectsPreset = activePreset;
+            Q_EMIT easyEffectsPresetChanged(m_easyEffectsPreset);
+        }
+    });
+
+    proc->start(QStringLiteral("easyeffects"), {QStringLiteral("-a"), QStringLiteral("output")});
 }

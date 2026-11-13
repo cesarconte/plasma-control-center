@@ -11,6 +11,7 @@ import QtQuick
 import QtQuick.Layouts
 
 import org.kde.kirigami as Kirigami
+import CachyOS.UI
 import org.kde.plasma.components as PlasmaComponents3
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.extras as PlasmaExtras
@@ -20,7 +21,18 @@ import org.kde.notificationmanager as NotificationManager
 Item {
     id: popup
 
+    clip: true
+
     readonly property var backend: Plasmoid.backend
+
+    Component.onCompleted: {
+        if (backend) backend.refreshAll();
+    }
+    onVisibleChanged: {
+        if (visible && backend) {
+            backend.refreshAll();
+        }
+    }
 
     // 0: Centro de Control (macOS Golden Gate), 1: Bandeja del Sistema (Plasma Tray)
     property int currentTab: 0
@@ -52,17 +64,8 @@ Item {
         }
     }
 
-    implicitWidth: Kirigami.Units.gridUnit * 25
-    implicitHeight: {
-        if (systemTrayState.activeApplet) {
-            return Kirigami.Units.gridUnit * 24;
-        }
-        if (popup.currentTab === 0) {
-            const h = controlCenterView.implicitHeight + trayHeading.height + Kirigami.Units.largeSpacing * 2;
-            return Math.min(Kirigami.Units.gridUnit * 30, Math.max(Kirigami.Units.gridUnit * 22, h));
-        }
-        return Kirigami.Units.gridUnit * 24;
-    }
+    implicitWidth: Math.max(Kirigami.Units.gridUnit * 25, trayHeading.implicitWidth + CachyTheme.spacingLarge * 2)
+    implicitHeight: systemTrayState.activeApplet ? Kirigami.Units.gridUnit * 24 : contentColumn.implicitHeight
 
     Layout.minimumWidth: Kirigami.Units.gridUnit * 23
     Layout.minimumHeight: Kirigami.Units.gridUnit * 22
@@ -79,21 +82,24 @@ Item {
         }
         height: trayHeading.height + bottomPadding + container.headingHeight
         Behavior on height {
-            NumberAnimation { duration: Kirigami.Units.shortDuration / 2; easing.type: Easing.InOutQuad }
+            NumberAnimation { duration: CachyTheme.animFast / 2; easing.type: Easing.InOutQuad }
         }
     }
 
     // Main content layout
     ColumnLayout {
-        id: expandedRepresentation
-        anchors.fill: parent
-        spacing: Kirigami.Units.smallSpacing
+        id: contentColumn
+        clip: true
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        spacing: CachyTheme.spacingSmall
 
         // Header content layout
         RowLayout {
             id: trayHeading
             Layout.fillWidth: true
-            spacing: Kirigami.Units.smallSpacing
+            spacing: CachyTheme.spacingSmall
 
             PlasmaComponents3.ToolButton {
                 id: backButton
@@ -117,7 +123,7 @@ Item {
             Kirigami.Heading {
                 visible: systemTrayState.activeApplet !== null
                 Layout.fillWidth: true
-                leftPadding: Kirigami.Units.smallSpacing
+                leftPadding: CachyTheme.spacingSmall
                 level: 2
                 text: systemTrayState.activeApplet ? systemTrayState.activeApplet.plasmoid.title : ""
                 font.weight: Font.Bold
@@ -134,7 +140,7 @@ Item {
                 implicitHeight: Kirigami.Units.gridUnit * 1.8
                 implicitWidth: segmentsRow.implicitWidth + 8
                 radius: implicitHeight / 2
-                color: Qt.alpha(Kirigami.Theme.textColor, 0.08)
+                color: Qt.alpha(CachyPalette.text, 0.08)
 
                 RowLayout {
                     id: segmentsRow
@@ -145,13 +151,13 @@ Item {
                     Rectangle {
                         id: controlCenterTab
                         implicitHeight: Kirigami.Units.gridUnit * 1.5
-                        implicitWidth: ccRow.implicitWidth + Kirigami.Units.mediumSpacing * 2
+                        implicitWidth: ccRow.implicitWidth + CachyTheme.spacingMedium * 2
                         radius: implicitHeight / 2
-                        color: popup.currentTab === 0 ? Kirigami.Theme.backgroundColor : "transparent"
+                        color: popup.currentTab === 0 ? CachyPalette.windowBackground : "transparent"
                         border.width: popup.currentTab === 0 ? 1 : 0
-                        border.color: Qt.alpha(Kirigami.Theme.textColor, 0.12)
+                        border.color: Qt.alpha(CachyPalette.text, 0.12)
 
-                        Behavior on color { ColorAnimation { duration: Kirigami.Units.shortDuration } }
+                        Behavior on color { ColorAnimation { duration: CachyTheme.animFast } }
 
                         MouseArea {
                             anchors.fill: parent
@@ -162,7 +168,7 @@ Item {
                         RowLayout {
                             id: ccRow
                             anchors.centerIn: parent
-                            spacing: Kirigami.Units.smallSpacing
+                            spacing: CachyTheme.spacingSmall
 
                             Kirigami.Icon {
                                 implicitWidth: Kirigami.Units.iconSizes.small
@@ -183,13 +189,13 @@ Item {
                     Rectangle {
                         id: trayTab
                         implicitHeight: Kirigami.Units.gridUnit * 1.5
-                        implicitWidth: trayRow.implicitWidth + Kirigami.Units.mediumSpacing * 2
+                        implicitWidth: trayRow.implicitWidth + CachyTheme.spacingMedium * 2
                         radius: implicitHeight / 2
-                        color: popup.currentTab === 1 ? Kirigami.Theme.backgroundColor : "transparent"
+                        color: popup.currentTab === 1 ? CachyPalette.windowBackground : "transparent"
                         border.width: popup.currentTab === 1 ? 1 : 0
-                        border.color: Qt.alpha(Kirigami.Theme.textColor, 0.12)
+                        border.color: Qt.alpha(CachyPalette.text, 0.12)
 
-                        Behavior on color { ColorAnimation { duration: Kirigami.Units.shortDuration } }
+                        Behavior on color { ColorAnimation { duration: CachyTheme.animFast } }
 
                         MouseArea {
                             anchors.fill: parent
@@ -200,7 +206,7 @@ Item {
                         RowLayout {
                             id: trayRow
                             anchors.centerIn: parent
-                            spacing: Kirigami.Units.smallSpacing
+                            spacing: CachyTheme.spacingSmall
 
                             Kirigami.Icon {
                                 implicitWidth: Kirigami.Units.iconSizes.small
@@ -220,7 +226,7 @@ Item {
                                 implicitWidth: Math.max(height, badgeText.implicitWidth + 8)
                                 implicitHeight: Kirigami.Units.iconSizes.small
                                 radius: height / 2
-                                color: popup.currentTab === 1 ? Kirigami.Theme.highlightColor : Qt.alpha(Kirigami.Theme.textColor, 0.15)
+                                color: popup.currentTab === 1 ? CachyPalette.accentText : Qt.alpha(CachyPalette.text, 0.15)
 
                                 PlasmaComponents3.Label {
                                     id: badgeText
@@ -228,7 +234,7 @@ Item {
                                     text: root.hiddenModel ? root.hiddenModel.count : "0"
                                     font.pixelSize: Math.max(9, Math.round(Kirigami.Units.gridUnit * 0.6))
                                     font.bold: true
-                                    color: popup.currentTab === 1 ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                                    color: CachyPalette.text
                                 }
                             }
                         }
@@ -395,7 +401,7 @@ Item {
                 onToggled: root.editMode = checked
                 icon.name: checked ? "dialog-ok-apply" : "document-edit"
                 highlighted: checked
-                display: checked ? PlasmaComponents3.AbstractButton.TextBesideIcon : PlasmaComponents3.AbstractButton.IconOnly
+                display: PlasmaComponents3.AbstractButton.IconOnly
                 text: checked ? i18nc("@action:button Leave the mode in which tiles can be moved and resized", "Done")
                               : i18nc("@action:button Enter the mode in which tiles can be moved and resized", "Edit Controls")
                 PlasmaComponents3.ToolTip {
@@ -426,7 +432,7 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: !systemTrayState.activeApplet && popup.currentTab === 0
             Layout.preferredHeight: (!systemTrayState.activeApplet && popup.currentTab === 0) ? -1 : 0
-            Layout.topMargin: Kirigami.Units.smallSpacing
+            Layout.topMargin: CachyTheme.spacingSmall
             visible: !systemTrayState.activeApplet && popup.currentTab === 0
             enabled: !systemTrayState.activeApplet && popup.currentTab === 0
 
@@ -441,7 +447,7 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: !systemTrayState.activeApplet && popup.currentTab === 1
             Layout.preferredHeight: (!systemTrayState.activeApplet && popup.currentTab === 1) ? -1 : 0
-            Layout.topMargin: Kirigami.Units.smallSpacing
+            Layout.topMargin: CachyTheme.spacingSmall
             visible: !systemTrayState.activeApplet && popup.currentTab === 1
             enabled: !systemTrayState.activeApplet && popup.currentTab === 1
 

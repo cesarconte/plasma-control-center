@@ -35,4 +35,13 @@ plasma_install_package(applets/systemsettings org.cesar.plasmacontrolcenter.syst
 
 ki18n_install(po)
 
+install(FILES src/qml/controlcenter-symbolic.svg
+    DESTINATION ${KDE_INSTALL_ICONDIR}/hicolor/scalable/status)
+install(FILES src/qml/controlcenter-symbolic.svg
+    DESTINATION ${KDE_INSTALL_ICONDIR}/hicolor/scalable/apps)
+install(FILES src/qml/controlcenter-symbolic.svg
+    DESTINATION ${KDE_INSTALL_ICONDIR}/hicolor/symbolic/status)
+install(FILES src/qml/controlcenter-symbolic.svg
+    DESTINATION ${KDE_INSTALL_ICONDIR}/hicolor/symbolic/apps)
+
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)

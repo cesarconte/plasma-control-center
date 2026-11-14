@@ -114,6 +114,7 @@ ContainmentItem {
     }
 
     Component.onCompleted: {
+        Plasmoid.configuration.pin = false;
         // We need all the plasmoiditems to be there for correct working of shortcuts.
         // Instantiators create the plasmoiditems: ensure this is done after
         // this containmentitem actually  exists so they can be immediately parented properly
@@ -523,7 +524,7 @@ ContainmentItem {
                 : PlasmaCore.AppletPopup.AtScreenEdges | PlasmaCore.AppletPopup.AtPanelEdges
 
 
-            hideOnWindowDeactivate: !Plasmoid.configuration.pin
+            hideOnWindowDeactivate: true
             visible: systemTrayState.expanded
             appletInterface: root
             width: expandedRepresentation.implicitWidth

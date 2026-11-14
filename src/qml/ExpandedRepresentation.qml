@@ -173,8 +173,9 @@ Item {
                             Kirigami.Icon {
                                 implicitWidth: Kirigami.Units.iconSizes.small
                                 implicitHeight: implicitWidth
-                                source: "controlcenter-symbolic"
-                                fallback: Qt.resolvedUrl("controlcenter-symbolic.svg")
+                                source: Qt.resolvedUrl("controlcenter-symbolic.svg")
+                                isMask: true
+                                color: CachyPalette.text
                             }
 
                             PlasmaComponents3.Label {
@@ -408,20 +409,6 @@ Item {
                     text: i18nc("@info:tooltip", "Move and resize the controls")
                 }
             }
-
-            // Pin / Mantener abierto
-            PlasmaComponents3.ToolButton {
-                id: pinButton
-                checkable: true
-                checked: Plasmoid.configuration.pin
-                onToggled: Plasmoid.configuration.pin = checked
-                icon.name: "window-pin"
-                display: PlasmaComponents3.AbstractButton.IconOnly
-                text: i18n("Fijar abierto")
-                PlasmaComponents3.ToolTip {
-                    text: pinButton.text
-                }
-            }
         }
 
         // ====================================================================
@@ -436,7 +423,7 @@ Item {
             visible: !systemTrayState.activeApplet && popup.currentTab === 0
             enabled: !systemTrayState.activeApplet && popup.currentTab === 0
 
-            KeyNavigation.up: pinButton
+            KeyNavigation.up: editButton
         }
 
         // ====================================================================
@@ -451,7 +438,7 @@ Item {
             visible: !systemTrayState.activeApplet && popup.currentTab === 1
             enabled: !systemTrayState.activeApplet && popup.currentTab === 1
 
-            KeyNavigation.up: pinButton
+            KeyNavigation.up: editButton
 
             onVisibleChanged: {
                 if (visible) {
@@ -472,8 +459,8 @@ Item {
 
             Layout.topMargin: mergeHeadings ? 0 : dialog.topPadding
 
-            KeyNavigation.up: pinButton
-            KeyNavigation.backtab: pinButton
+            KeyNavigation.up: configureButton.visible ? configureButton : (actionsButton.visible ? actionsButton : editButton)
+            KeyNavigation.backtab: KeyNavigation.up
 
             onVisibleChanged: {
                 if (visible) {

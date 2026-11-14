@@ -191,7 +191,7 @@ AbstractItem {
 
     Binding {
         property: "hideOnWindowDeactivate"
-        value: !Plasmoid.configuration.pin
+        value: true
         target: plasmoidContainer.applet
         when: plasmoidContainer.applet !== null
         restoreMode: Binding.RestoreBinding

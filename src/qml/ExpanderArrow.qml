@@ -54,8 +54,11 @@ PlasmaCore.ToolTipArea {
     }
 
     Kirigami.Icon {
-        anchors.fill: parent
-        source: Plasmoid.configuration.icon || "controlcenter-symbolic"
-        fallback: Qt.resolvedUrl("controlcenter-symbolic.svg")
+        anchors.centerIn: parent
+        width: tooltip.iconSize
+        height: tooltip.iconSize
+        source: Plasmoid.configuration.icon || Qt.resolvedUrl("controlcenter-symbolic.svg")
+        isMask: true
+        color: Kirigami.Theme.textColor
     }
 }

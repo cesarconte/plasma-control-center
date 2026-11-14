@@ -891,6 +891,7 @@ PlasmaComponents3.ScrollView {
                         BrightnessSliderTile {
                             anchors.fill: parent
                             visible: popup.backend ? popup.backend.brightnessAvailable : true
+                            onDetailsClicked: if (popup.backend) popup.backend.openDisplaySettings()
                         }
                     }
                 }
@@ -924,12 +925,14 @@ PlasmaComponents3.ScrollView {
                                 const sink = PlasmaAudio.PreferredDevice.sink;
                                 if (sink) sink.muted = !sink.muted;
                             }
+                            onRightClicked: if (popup.backend) popup.backend.openAudioSettings()
                         }
                     }
                     Component {
                         id: volFull
                         AudioSliderTile {
                             anchors.fill: parent
+                            onDetailsClicked: if (popup.backend) popup.backend.openAudioSettings()
                         }
                     }
                 }

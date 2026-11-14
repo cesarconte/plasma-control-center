@@ -15,7 +15,12 @@ import org.kde.plasma.plasmoid
 Item {
     id: root
 
+    clip: true
+
     readonly property var backend: Plasmoid.backend
+
+    signal clicked()
+    signal detailsClicked()
 
     readonly property real maxB: Math.max(1, root.backend ? root.backend.brightnessMax : 100)
     readonly property real curB: root.backend ? root.backend.brightness : 100
@@ -34,7 +39,12 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        acceptedButtons: Qt.NoButton
+        acceptedButtons: Qt.LeftButton
+        onClicked: {
+            root.clicked();
+            root.detailsClicked();
+            if (root.backend) root.backend.openDisplaySettings();
+        }
     }
 
     ColumnLayout {
@@ -42,13 +52,29 @@ Item {
         anchors.margins: CachyTheme.marginCard
         spacing: 2
 
-        // Línea 1: Únicamente el título "Brillo", tal como en macOS
-        PlasmaComponents3.Label {
+        // Línea 1: Título "Brillo" + Chevron
+        RowLayout {
             Layout.fillWidth: true
-            text: i18n("Brillo")
-            font.weight: Font.DemiBold
-            font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
-            elide: Text.ElideRight
+            spacing: CachyTheme.spacingSmall
+
+            PlasmaComponents3.Label {
+                Layout.fillWidth: true
+                text: i18n("Brillo")
+                font.weight: Font.DemiBold
+                font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
+                elide: Text.ElideRight
+            }
+
+            PlasmaComponents3.ToolButton {
+                icon.name: "go-next-symbolic"
+                display: PlasmaComponents3.AbstractButton.IconOnly
+                implicitWidth: Kirigami.Units.iconSizes.small
+                implicitHeight: implicitWidth
+                onClicked: {
+                    root.detailsClicked();
+                    if (root.backend) root.backend.openDisplaySettings();
+                }
+            }
         }
 
         // Línea 2: Icono de brillo + Scroll (Slider) + Porcentaje

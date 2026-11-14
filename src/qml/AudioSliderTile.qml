@@ -16,7 +16,12 @@ import org.kde.plasma.private.volume as PlasmaAudio
 Item {
     id: root
 
+    clip: true
+
     readonly property var backend: Plasmoid.backend
+
+    signal clicked()
+    signal detailsClicked()
 
     readonly property var currentSink: PlasmaAudio.PreferredDevice.sink
     readonly property real volumePercent: currentSink ? (currentSink.volume / 65536.0) : 0.0
@@ -35,7 +40,12 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        acceptedButtons: Qt.NoButton
+        acceptedButtons: Qt.LeftButton
+        onClicked: {
+            root.clicked();
+            root.detailsClicked();
+            if (root.backend) root.backend.openAudioSettings();
+        }
     }
 
     ColumnLayout {
@@ -43,13 +53,29 @@ Item {
         anchors.margins: CachyTheme.marginCard
         spacing: 2
 
-        // Línea 1: Únicamente el título "Sonido", tal como en macOS
-        PlasmaComponents3.Label {
+        // Línea 1: Título "Sonido" + Chevron
+        RowLayout {
             Layout.fillWidth: true
-            text: i18n("Sonido")
-            font.weight: Font.DemiBold
-            font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
-            elide: Text.ElideRight
+            spacing: CachyTheme.spacingSmall
+
+            PlasmaComponents3.Label {
+                Layout.fillWidth: true
+                text: i18n("Sonido")
+                font.weight: Font.DemiBold
+                font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
+                elide: Text.ElideRight
+            }
+
+            PlasmaComponents3.ToolButton {
+                icon.name: "go-next-symbolic"
+                display: PlasmaComponents3.AbstractButton.IconOnly
+                implicitWidth: Kirigami.Units.iconSizes.small
+                implicitHeight: implicitWidth
+                onClicked: {
+                    root.detailsClicked();
+                    if (root.backend) root.backend.openAudioSettings();
+                }
+            }
         }
 
         // Línea 2: Icono de sonido + Scroll (Slider) + Porcentaje

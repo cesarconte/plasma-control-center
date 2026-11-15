@@ -43,7 +43,6 @@ Item {
         onClicked: {
             root.clicked();
             root.detailsClicked();
-            if (root.backend) root.backend.openDisplaySettings();
         }
     }
 
@@ -72,7 +71,6 @@ Item {
                 implicitHeight: implicitWidth
                 onClicked: {
                     root.detailsClicked();
-                    if (root.backend) root.backend.openDisplaySettings();
                 }
             }
         }

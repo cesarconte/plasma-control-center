@@ -44,7 +44,6 @@ Item {
         onClicked: {
             root.clicked();
             root.detailsClicked();
-            if (root.backend) root.backend.openAudioSettings();
         }
     }
 
@@ -73,7 +72,6 @@ Item {
                 implicitHeight: implicitWidth
                 onClicked: {
                     root.detailsClicked();
-                    if (root.backend) root.backend.openAudioSettings();
                 }
             }
         }

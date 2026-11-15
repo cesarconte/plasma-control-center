@@ -13,10 +13,22 @@
 #include <QDBusServiceWatcher>
 #include <QDebug>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QFileSystemWatcher>
 #include <QSettings>
 #include <QStandardPaths>
+
+namespace {
+bool shouldThrottle(QElapsedTimer &timer, qint64 thresholdMs = 1000)
+{
+    if (!timer.isValid() || timer.hasExpired(thresholdMs)) {
+        timer.restart();
+        return false;
+    }
+    return true;
+}
+}
 
 ControlBackend::ControlBackend(QObject *parent)
     : QObject(parent)
@@ -560,36 +572,50 @@ void ControlBackend::checkBluetoothStatus()
 // ----------------------------------------------------------------------------
 void ControlBackend::openSystemSettings()
 {
+    static QElapsedTimer timer;
+    if (shouldThrottle(timer)) return;
     KProcess::startDetached(QStringLiteral("systemsettings"));
 }
 
 void ControlBackend::openAudioSettings()
 {
+    static QElapsedTimer timer;
+    if (shouldThrottle(timer)) return;
     KProcess::startDetached(QStringLiteral("kcmshell6"), {QStringLiteral("kcm_pulseaudio")});
 }
 
 void ControlBackend::openDisplaySettings()
 {
+    static QElapsedTimer timer;
+    if (shouldThrottle(timer)) return;
     KProcess::startDetached(QStringLiteral("kcmshell6"), {QStringLiteral("kcm_kscreen")});
 }
 
 void ControlBackend::openNetworkSettings()
 {
+    static QElapsedTimer timer;
+    if (shouldThrottle(timer)) return;
     KProcess::startDetached(QStringLiteral("kcmshell6"), {QStringLiteral("kcm_networkmanagement")});
 }
 
 void ControlBackend::openBluetoothSettings()
 {
+    static QElapsedTimer timer;
+    if (shouldThrottle(timer)) return;
     KProcess::startDetached(QStringLiteral("kcmshell6"), {QStringLiteral("kcm_bluetooth")});
 }
 
 void ControlBackend::openEnergySettings()
 {
+    static QElapsedTimer timer;
+    if (shouldThrottle(timer)) return;
     KProcess::startDetached(QStringLiteral("kcmshell6"), {QStringLiteral("kcm_powerdevilprofilesconfig")});
 }
 
 void ControlBackend::openKdeConnect()
 {
+    static QElapsedTimer timer;
+    if (shouldThrottle(timer)) return;
     KProcess::startDetached(QStringLiteral("kdeconnect-app"));
 }
 

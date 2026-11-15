@@ -106,14 +106,5 @@ Item {
                 }
             }
         }
-
-        // Chevron para detalles
-        PlasmaComponents3.ToolButton {
-            icon.name: "go-next-symbolic"
-            display: PlasmaComponents3.AbstractButton.IconOnly
-            implicitWidth: Kirigami.Units.iconSizes.small
-            implicitHeight: implicitWidth
-            onClicked: root.detailsClicked()
-        }
     }
 }

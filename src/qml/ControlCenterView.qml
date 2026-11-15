@@ -1017,8 +1017,8 @@ PlasmaComponents3.ScrollView {
                                     id: cardLargeBg
                                     anchors.fill: parent
                                     interactive: true
-                                    hovered: largeMouse.containsMouse || chevronLargeBtn.hovered
-                                    pressed: largeMouse.pressed || chevronLargeBtn.pressed
+                                    hovered: largeMouse.containsMouse
+                                    pressed: largeMouse.pressed
                                 }
 
                                 ColumnLayout {
@@ -1026,45 +1026,24 @@ PlasmaComponents3.ScrollView {
                                     anchors.margins: CachyTheme.marginCard
                                     spacing: CachyTheme.spacingSmall
 
-                                    // Fila superior: Icono circular y chevron para menú
-                                    RowLayout {
-                                        Layout.fillWidth: true
-                                        spacing: CachyTheme.spacingSmall
+                                    // Fila superior: Icono circular
+                                    Rectangle {
+                                        Layout.preferredWidth: Math.round(Kirigami.Units.gridUnit * 2.4)
+                                        Layout.preferredHeight: Layout.preferredWidth
+                                        radius: Layout.preferredWidth / 2
+                                        color: CachyPalette.accentText
 
-                                        Rectangle {
-                                            Layout.preferredWidth: Math.round(Kirigami.Units.gridUnit * 2.4)
-                                            Layout.preferredHeight: Layout.preferredWidth
-                                            radius: Layout.preferredWidth / 2
-                                            color: CachyPalette.accentText
-
-                                            Behavior on color {
-                                                ColorAnimation { duration: CachyTheme.animFast }
-                                            }
-
-                                            Kirigami.Icon {
-                                                anchors.centerIn: parent
-                                                implicitWidth: Kirigami.Units.iconSizes.medium
-                                                implicitHeight: implicitWidth
-                                                source: extraTileRoot.tileIcon
-                                                isMask: true
-                                                color: CachyPalette.text
-                                            }
+                                        Behavior on color {
+                                            ColorAnimation { duration: CachyTheme.animFast }
                                         }
 
-                                        Item {
-                                            Layout.fillWidth: true
-                                        }
-
-                                        PlasmaComponents3.ToolButton {
-                                            id: chevronLargeBtn
-                                            icon.name: "go-next-symbolic"
-                                            display: PlasmaComponents3.AbstractButton.IconOnly
-                                            implicitWidth: Kirigami.Units.iconSizes.small
+                                        Kirigami.Icon {
+                                            anchors.centerIn: parent
+                                            implicitWidth: Kirigami.Units.iconSizes.medium
                                             implicitHeight: implicitWidth
-                                            onClicked: {
-                                                const pos = Plasmoid.popupPosition(chevronLargeBtn, Math.round(chevronLargeBtn.width / 2), Math.round(chevronLargeBtn.height / 2));
-                                                Plasmoid.openContextMenuForItemId(extraTileRoot.extraItemId, pos, chevronLargeBtn);
-                                            }
+                                            source: extraTileRoot.tileIcon
+                                            isMask: true
+                                            color: CachyPalette.text
                                         }
                                     }
 
@@ -1095,7 +1074,6 @@ PlasmaComponents3.ScrollView {
                                 MouseArea {
                                     id: largeMouse
                                     anchors.fill: parent
-                                    anchors.rightMargin: chevronLargeBtn.width + CachyTheme.spacingMedium
                                     acceptedButtons: Qt.LeftButton | Qt.RightButton
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
@@ -1116,7 +1094,7 @@ PlasmaComponents3.ScrollView {
                                         const s = extraTileRoot.tileStatus;
                                         return (s && s.length > 0 && s !== t) ? (t + " (" + s + ")") : t;
                                     }
-                                    visible: largeItem.hovered || largeMouse.containsMouse || chevronLargeBtn.hovered
+                                    visible: largeItem.hovered || largeMouse.containsMouse
                                 }
                             }
                         }

@@ -86,14 +86,5 @@ Item {
                 }
             }
         }
-
-        // Botón chevron para ajustes de este subsistema
-        PlasmaComponents3.ToolButton {
-            icon.name: "go-next-symbolic"
-            display: PlasmaComponents3.AbstractButton.IconOnly
-            implicitWidth: Kirigami.Units.iconSizes.smallMedium
-            implicitHeight: implicitWidth
-            onClicked: root.detailsClicked()
-        }
     }
 }

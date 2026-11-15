@@ -51,28 +51,13 @@ Item {
         anchors.margins: CachyTheme.marginCard
         spacing: 2
 
-        // Línea 1: Título "Brillo" + Chevron
-        RowLayout {
+        // Línea 1: Título "Brillo"
+        PlasmaComponents3.Label {
             Layout.fillWidth: true
-            spacing: CachyTheme.spacingSmall
-
-            PlasmaComponents3.Label {
-                Layout.fillWidth: true
-                text: i18n("Brillo")
-                font.weight: Font.DemiBold
-                font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
-                elide: Text.ElideRight
-            }
-
-            PlasmaComponents3.ToolButton {
-                icon.name: "go-next-symbolic"
-                display: PlasmaComponents3.AbstractButton.IconOnly
-                implicitWidth: Kirigami.Units.iconSizes.small
-                implicitHeight: implicitWidth
-                onClicked: {
-                    root.detailsClicked();
-                }
-            }
+            text: i18n("Brillo")
+            font.weight: Font.DemiBold
+            font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.95
+            elide: Text.ElideRight
         }
 
         // Línea 2: Icono de brillo + Scroll (Slider) + Porcentaje
